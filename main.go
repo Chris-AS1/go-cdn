@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"time"
-	"io/ioutil"
+	"os"
 	"net/http"
 	"log"
 	"github.com/gorilla/mux"
@@ -23,7 +23,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 
 // Testing - Lists files on a directory
 func ListHandler(w http.ResponseWriter, r *http.Request) {
-	files, err := ioutil.ReadDir("resources/")
+	files, err := os.ReadDir("resources/")
 	vars := mux.Vars(r)
 
 	log.Print(vars)
@@ -46,24 +46,23 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)	
 	img_id := vars["id"]
+	log.Print(r.URL)
 
-	if img_id != "null" && img_id != "" {
-		buff, err := ioutil.ReadFile(fmt.Sprintf("resources/%s.jpg", vars["id"]))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			log.Print(err)
-			return
-		}
-	
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "image/jpg")
-		w.Write(buff)
+	if img_id == "null" || img_id == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusBadRequest)
-	w.Header().Set("Content-Type", "application/text")
-	io.WriteString(w, "EMPTY!\n")
+	buff, err := os.ReadFile(fmt.Sprintf("resources/%s.jpg", vars["id"]))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Print(err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "image/jpg")
+	w.Write(buff)
 	return
 }
 
