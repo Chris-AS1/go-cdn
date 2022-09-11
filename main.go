@@ -3,11 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go-cdn/utils"
 	"io"
-	"time"
-	"os"
-	"net/http"
 	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/gorilla/mux"
 )
 
@@ -24,27 +26,24 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 // Testing - Lists files on a directory
 func ListHandler(w http.ResponseWriter, r *http.Request) {
 	files, err := os.ReadDir("resources/")
-	vars := mux.Vars(r)
 
-	log.Print(vars)
-    if err != nil {
+	if err != nil {
 		log.Fatal(err)
-    }
-	
+	}
+
 	var str string
 
 	for _, file := range files {
 		str += file.Name() + "\n"
 	}
-	
+
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
-	return
 }
 
 // Returns a specified image
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)	
+	vars := mux.Vars(r)
 	img_id := vars["id"]
 	log.Print(r.URL)
 
@@ -63,28 +62,30 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpg")
 	w.Write(buff)
-	return
 }
 
 func main() {
+	utils.LoadEnv()
+
 	log.Print("Starting Server")
 
 	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/", RootHandler)
 
-	r.HandleFunc("/image/", ImageHandler)
-	r.HandleFunc("/image/{id}", ImageHandler)
+	log.Print("Serving Path: ", fmt.Sprintf("/%s/", utils.EnvSettings.DeliveringSubPath))
+	r.HandleFunc(fmt.Sprintf("/%s/", utils.EnvSettings.DeliveringSubPath), ImageHandler)
+	r.HandleFunc(fmt.Sprintf("/%s/{id}", utils.EnvSettings.DeliveringSubPath), ImageHandler)
 
 	r.HandleFunc("/list/", ListHandler)
 
 	http.Handle("/", r)
-	
-	srv := &http.Server{
-        Handler:      r,
-        Addr:         "127.0.0.1:3333",
-        WriteTimeout: 15 * time.Second,
-        ReadTimeout:  15 * time.Second,
-    }
 
-    log.Fatal(srv.ListenAndServe())
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         "127.0.0.1:3333",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
