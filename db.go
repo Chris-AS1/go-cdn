@@ -15,7 +15,7 @@ func dbConnection() *sql.DB {
 		utils.EnvSettings.DatabasePassword,
 		utils.EnvSettings.DatabaseURL,
 		utils.EnvSettings.DatabasePort,
-		utils.EnvSettings.DatabaseName,
+		utils.EnvSettings.DatabaseTableName,
 		utils.EnvSettings.DatabaseSSL)
 
 	db, err := sql.Open("postgres", connStr)
