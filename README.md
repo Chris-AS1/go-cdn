@@ -17,6 +17,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  
 
 ## Todo
+- [ ] Insert, Remove Images
 - [ ] Select Database Storage (+Redis)
 - [x] Option to disable subpath
 - [x] File Mapping with ID
