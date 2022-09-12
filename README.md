@@ -1,28 +1,22 @@
 # Golang CDN
-Simple CDN made in Golang which aims to distribute files from a simple environment.
+Simple CDN made in Golang which aims to distribute files from a simple and easily deployable environment.
 
 # Parameters
-- CDN_PATH
-- DB_USERNAME
-- DB_PASSWORD
-- DB_PORT
-- DB_URL
-- DB_NAME
-- DB_SSL
-
+| VAR | Description |
+|---|---|
+| `CDN_PORT=3333` | Port used by CDN |  
+| `CDN_PATH=/image/` | Subpath on which the resources will be served |  
+| `DB_USERNAME=` | Auth Username for PostgreSQL |  
+| `DB_PASSWORD=` | Auth Password for PostgreSQL |  
+| `DB_PORT=` | Port for PostgreSQL |  
+| `DB_URL=` | Database URL for PostgreSQL |  
+| `DB_NAME=` | Table Name for PostgreSQL |  
+| `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  
 
 ## Todo
-- [ ] Database Storage
+- [ ] Select Database Storage (+Redis)
+- [x] File Mapping with ID
 - [ ] Caching
 - [ ] Auth
 - [ ] Geo Restriction
 
-| VAR | Description |
-|---|---|
-| `CDN_PATH=/image/` | Subpath on which the resources will be served |  
-| `DB_USERNAME` | Auth Username for PostgreSQL |  
-| `DB_PASSWORD` | Auth Password for PostgreSQL |  
-| `DB_PORT` | Port for PostgreSQL |  
-| `DB_URL` | Database URL for PostgreSQL |  
-| `DB_NAME` | Table Name for PostgreSQL |  
-| `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  

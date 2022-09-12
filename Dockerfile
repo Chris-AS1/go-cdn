@@ -5,6 +5,7 @@ COPY go.mod ./
 COPY go.sum ./
 
 # Will be mounted
+# TODO Test if works relative path
 RUN mkdir ./resources
 
 RUN go mod download

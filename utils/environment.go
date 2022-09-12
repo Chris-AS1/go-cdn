@@ -8,6 +8,7 @@ import (
 )
 
 type settings struct {
+	DeliveringPort    string
 	DeliveringSubPath string
 	DatabaseUsername  string
 	DatabasePassword  string
@@ -19,6 +20,7 @@ type settings struct {
 
 var (
 	EnvSettings = settings{
+		DeliveringPort:    "3333",
 		DeliveringSubPath: "/image/",
 		DatabaseUsername:  "",
 		DatabasePassword:  "",
@@ -51,6 +53,7 @@ func loadVar(env string, dest *string) {
 }
 
 func LoadEnv() {
+	loadVar(loadDotEnv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(loadDotEnv("CDN_PATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(loadDotEnv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(loadDotEnv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
@@ -59,6 +62,7 @@ func LoadEnv() {
 	loadVar(loadDotEnv("DB_NAME"), &EnvSettings.DatabaseName)
 	loadVar(loadDotEnv("DB_SSL"), &EnvSettings.DatabaseSSL)
 
+	loadVar(os.Getenv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(os.Getenv("CDN_PATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(os.Getenv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(os.Getenv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
