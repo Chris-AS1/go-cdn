@@ -8,26 +8,28 @@ import (
 )
 
 type settings struct {
-	DeliveringPort    string
-	DeliveringSubPath string
-	DatabaseUsername  string
-	DatabasePassword  string
-	DatabasePort      string
-	DatabaseURL       string
-	DatabaseName      string
-	DatabaseSSL       string
+	DeliveringPort          string
+	DeliveringSubPath       string
+	DeliveringSubPathEnable string
+	DatabaseUsername        string
+	DatabasePassword        string
+	DatabasePort            string
+	DatabaseURL             string
+	DatabaseName            string
+	DatabaseSSL             string
 }
 
 var (
 	EnvSettings = settings{
-		DeliveringPort:    "3333",
-		DeliveringSubPath: "/image/",
-		DatabaseUsername:  "",
-		DatabasePassword:  "",
-		DatabasePort:      "",
-		DatabaseURL:       "",
-		DatabaseName:      "",
-		DatabaseSSL:       "disabled",
+		DeliveringPort:          "3333",
+		DeliveringSubPath:       "/image/",
+		DeliveringSubPathEnable: "true",
+		DatabaseUsername:        "",
+		DatabasePassword:        "",
+		DatabasePort:            "",
+		DatabaseURL:             "",
+		DatabaseName:            "",
+		DatabaseSSL:             "disabled",
 	}
 )
 
@@ -64,7 +66,8 @@ func loadDotEnv(key string) string {
 
 func LoadEnv() {
 	loadVar(loadDotEnv("CDN_PORT"), &EnvSettings.DeliveringPort)
-	loadVar(genDeliveringSubPath(loadDotEnv("CDN_PATH")), &EnvSettings.DeliveringSubPath)
+	loadVar(genDeliveringSubPath(loadDotEnv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
+	loadVar(loadDotEnv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)
 	loadVar(loadDotEnv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(loadDotEnv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(loadDotEnv("DB_PORT"), &EnvSettings.DatabasePort)
@@ -73,7 +76,8 @@ func LoadEnv() {
 	loadVar(loadDotEnv("DB_SSL"), &EnvSettings.DatabaseSSL)
 
 	loadVar(os.Getenv("CDN_PORT"), &EnvSettings.DeliveringPort)
-	loadVar(genDeliveringSubPath(os.Getenv("CDN_PATH")), &EnvSettings.DeliveringSubPath)
+	loadVar(genDeliveringSubPath(os.Getenv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
+	loadVar(os.Getenv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)
 	loadVar(os.Getenv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(os.Getenv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(os.Getenv("DB_PORT"), &EnvSettings.DatabasePort)

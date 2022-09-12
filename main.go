@@ -98,13 +98,24 @@ func main() {
 	log.Print("Starting Server")
 
 	r := mux.NewRouter().StrictSlash(true)
-	r.HandleFunc("/", RootHandler)
+	// r.HandleFunc("/", RootHandler)
 
-	log.Printf("Serving Path: /%s/", utils.EnvSettings.DeliveringSubPath)
-	r.HandleFunc(fmt.Sprintf("/%s/", utils.EnvSettings.DeliveringSubPath), ImageHandler)
-	r.HandleFunc(fmt.Sprintf("/%s/{id}", utils.EnvSettings.DeliveringSubPath), ImageHandler)
+	// Serving Path Selection
+	b, err := strconv.ParseBool(utils.EnvSettings.DeliveringSubPathEnable)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	r.HandleFunc("/list/", ListHandler)
+	if b {
+		log.Printf("Serving Path: /%s/{id}/", utils.EnvSettings.DeliveringSubPath)
+		r.HandleFunc(fmt.Sprintf("/%s", utils.EnvSettings.DeliveringSubPath), ImageHandler)
+		r.HandleFunc(fmt.Sprintf("/%s/{id}", utils.EnvSettings.DeliveringSubPath), ImageHandler)
+	} else {
+		log.Print("Serving Path: /{id}/")
+		r.HandleFunc("/", ImageHandler)
+		r.HandleFunc("/{id}", ImageHandler)
+	}
 
 	http.Handle("/", r)
 
