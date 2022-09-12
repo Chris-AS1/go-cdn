@@ -65,6 +65,7 @@ func loadDotEnv(key string) string {
 }
 
 func LoadEnv() {
+	// Loads .env
 	loadVar(loadDotEnv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(loadDotEnv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(loadDotEnv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)
@@ -75,6 +76,7 @@ func LoadEnv() {
 	loadVar(loadDotEnv("DB_NAME"), &EnvSettings.DatabaseName)
 	loadVar(loadDotEnv("DB_SSL"), &EnvSettings.DatabaseSSL)
 
+	// Loads environment
 	loadVar(os.Getenv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(os.Getenv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(os.Getenv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)

@@ -6,7 +6,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 |---|---|
 | `CDN_PORT=3333` | Port used by CDN |  
 | `CDN_SUBPATH=/image/` | Subpath on which the resources will be served |  
-| `CDN_SUBPATH_ENABLE=true` | Select if CDN should serve under a subpath |  
+| `CDN_SUBPATH_ENABLE=true` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
 | `DB_USERNAME=` | Auth Username for PostgreSQL |  
 | `DB_PASSWORD=` | Auth Password for PostgreSQL |  
 | `DB_PORT=` | Port for PostgreSQL |  
