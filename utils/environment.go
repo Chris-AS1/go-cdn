@@ -52,6 +52,16 @@ func loadVar(env string, dest *string) {
 	}
 }
 
+func loadDotEnv(key string) string {
+	env, err := godotenv.Read(".env")
+
+	if err != nil {
+		return ""
+	}
+
+	return env[key]
+}
+
 func LoadEnv() {
 	loadVar(loadDotEnv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(loadDotEnv("CDN_PATH")), &EnvSettings.DeliveringSubPath)
@@ -70,14 +80,4 @@ func LoadEnv() {
 	loadVar(os.Getenv("DB_URL"), &EnvSettings.DatabaseURL)
 	loadVar(os.Getenv("DB_NAME"), &EnvSettings.DatabaseName)
 	loadVar(os.Getenv("DB_SSL"), &EnvSettings.DatabaseSSL)
-}
-
-func loadDotEnv(key string) string {
-	env, err := godotenv.Read(".env")
-
-	if err != nil {
-		return ""
-	}
-
-	return env[key]
 }

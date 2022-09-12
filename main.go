@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"go-cdn/utils"
 	"io"
@@ -15,8 +14,7 @@ import (
 )
 
 var (
-	ResourceNotFoundException = errors.New("resource not found")
-	dataFolder                = "./resources"
+	dataFolder = "./resources"
 )
 
 // Root Handle - version number
@@ -114,7 +112,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         fmt.Sprintf("127.0.0.1:%s", utils.EnvSettings.DeliveringPort),
+		Addr:         fmt.Sprintf(":%s", utils.EnvSettings.DeliveringPort),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}

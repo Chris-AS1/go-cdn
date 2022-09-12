@@ -15,6 +15,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 
 ## Todo
 - [ ] Select Database Storage (+Redis)
+- [ ] Option to disable subpath
 - [x] File Mapping with ID
 - [ ] Caching
 - [ ] Auth
