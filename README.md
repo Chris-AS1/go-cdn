@@ -22,5 +22,6 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 - [x] File Mapping with ID
 - [ ] Caching
 - [ ] Auth
+- [ ] Compresssion
 - [ ] Geo Restriction
 

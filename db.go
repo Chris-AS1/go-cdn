@@ -31,12 +31,18 @@ func dbConnection() *sql.DB {
 	return db
 }
 
-func ReadRows() {
+func GetImage(id string) {
 	log.Print("Connecting to DB...")
 	con := dbConnection()
 
-	// TODO
-	rows, err := con.Query("SELECT * FROM TBD")
+	// TODO, look into preventing Injection
+	rows, err := con.Query(fmt.Sprintf("SELECT %s, %s FROM %s where %s=%s",
+		utils.EnvSettings.DatabaseIDColumn,
+		utils.EnvSettings.DatabaseByteColumn,
+		utils.EnvSettings.DatabaseTableName,
+		utils.EnvSettings.DatabaseIDColumn,
+		id))
+
 	defer rows.Close()
 
 	if err != nil {
