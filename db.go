@@ -36,12 +36,12 @@ func GetImage(id string) {
 	con := dbConnection()
 
 	// TODO, look into preventing Injection
-	rows, err := con.Query(fmt.Sprintf("SELECT %s, %s FROM %s where %s=%s",
+	rows, err := con.Query("SELECT $1, $2 FROM $3 where $4=$5",
 		utils.EnvSettings.DatabaseIDColumn,
 		utils.EnvSettings.DatabaseByteColumn,
 		utils.EnvSettings.DatabaseTableName,
 		utils.EnvSettings.DatabaseIDColumn,
-		id))
+		id)
 
 	defer rows.Close()
 
