@@ -15,9 +15,10 @@ type settings struct {
 	DatabasePassword        string
 	DatabasePort            string
 	DatabaseURL             string
+	DatabaseName            string
 	DatabaseTableName       string
 	DatabaseIDColumn        string
-	DatabaseByteColumn      string
+	DatabaseFilenameColumn  string
 	DatabaseSSL             string
 }
 
@@ -30,9 +31,10 @@ var (
 		DatabasePassword:        "",
 		DatabasePort:            "",
 		DatabaseURL:             "",
+		DatabaseName:            "",
 		DatabaseTableName:       "",
 		DatabaseIDColumn:        "",
-		DatabaseByteColumn:      "",
+		DatabaseFilenameColumn:  "",
 		DatabaseSSL:             "disabled",
 	}
 )
@@ -77,9 +79,10 @@ func LoadEnv() {
 	loadVar(loadDotEnv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(loadDotEnv("DB_PORT"), &EnvSettings.DatabasePort)
 	loadVar(loadDotEnv("DB_URL"), &EnvSettings.DatabaseURL)
+	loadVar(loadDotEnv("DB_NAME"), &EnvSettings.DatabaseName)
 	loadVar(loadDotEnv("DB_TABLE_NAME"), &EnvSettings.DatabaseTableName)
 	loadVar(loadDotEnv("DB_COL_ID"), &EnvSettings.DatabaseIDColumn)
-	loadVar(loadDotEnv("DB_COL_BYTE"), &EnvSettings.DatabaseByteColumn)
+	loadVar(loadDotEnv("DB_COL_FN"), &EnvSettings.DatabaseFilenameColumn)
 	loadVar(loadDotEnv("DB_SSL"), &EnvSettings.DatabaseSSL)
 
 	// Loads environment
@@ -90,8 +93,9 @@ func LoadEnv() {
 	loadVar(os.Getenv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(os.Getenv("DB_PORT"), &EnvSettings.DatabasePort)
 	loadVar(os.Getenv("DB_URL"), &EnvSettings.DatabaseURL)
+	loadVar(os.Getenv("DB_NAME"), &EnvSettings.DatabaseName)
 	loadVar(os.Getenv("DB_TABLE_NAME"), &EnvSettings.DatabaseTableName)
 	loadVar(os.Getenv("DB_COL_ID"), &EnvSettings.DatabaseIDColumn)
-	loadVar(os.Getenv("DB_COL_BYTE"), &EnvSettings.DatabaseByteColumn)
+	loadVar(os.Getenv("DB_COL_FN"), &EnvSettings.DatabaseFilenameColumn)
 	loadVar(os.Getenv("DB_SSL"), &EnvSettings.DatabaseSSL)
 }

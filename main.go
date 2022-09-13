@@ -40,11 +40,17 @@ func getFiles(dir string) map[int]string {
 
 // Testing - Lists files on a directory
 func ListHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	for k, v := range getFiles(dataFolder) {
-		io.WriteString(w, strconv.Itoa(k)+" "+v+"\n")
+	// w.WriteHeader(http.StatusOK)
+	// for k, v := range getFiles(dataFolder) {
+	// 	io.WriteString(w, strconv.Itoa(k)+" "+v+"\n")
 
+	// }
+
+	w.WriteHeader(http.StatusOK)
+	for k, v := range GetImageList() {
+		io.WriteString(w, strconv.Itoa(k)+" "+v+"\n")
 	}
+
 }
 
 // Returns a specified image

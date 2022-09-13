@@ -15,7 +15,7 @@ func dbConnection() *sql.DB {
 		utils.EnvSettings.DatabasePassword,
 		utils.EnvSettings.DatabaseURL,
 		utils.EnvSettings.DatabasePort,
-		utils.EnvSettings.DatabaseTableName,
+		utils.EnvSettings.DatabaseName,
 		utils.EnvSettings.DatabaseSSL)
 
 	db, err := sql.Open("postgres", connStr)
@@ -31,29 +31,29 @@ func dbConnection() *sql.DB {
 	return db
 }
 
-func GetImage(id string) {
+func GetImageList() []string {
 	log.Print("Connecting to DB...")
 	con := dbConnection()
 
-	// TODO, look into preventing Injection
-	rows, err := con.Query("SELECT $1, $2 FROM $3 where $4=$5",
-		utils.EnvSettings.DatabaseIDColumn,
-		utils.EnvSettings.DatabaseByteColumn,
-		utils.EnvSettings.DatabaseTableName,
-		utils.EnvSettings.DatabaseIDColumn,
-		id)
+	// Variable Replacement of a table name not supported
+	rows, err := con.Query(fmt.Sprintf(`SELECT $1 FROM %s`, utils.EnvSettings.DatabaseTableName),
+		utils.EnvSettings.DatabaseFilenameColumn)
 
 	defer rows.Close()
 
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
+	var v []string
 	for rows.Next() {
-		var v string
-		if err := rows.Scan(&v); err != nil {
+		var r string
+		if err := rows.Scan(&r); err != nil {
 			log.Fatal(err)
 		}
-		log.Print(v)
+		log.Print(r)
+		v = append(v, r)
 	}
+
+	return v
 }

@@ -11,9 +11,9 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_PASSWORD=` | Auth Password for PostgreSQL |  
 | `DB_PORT=` | Port for PostgreSQL |  
 | `DB_URL=` | Database URL for PostgreSQL |  
-| `DB_TABLE_NAME=` | Table Name for PostgreSQL |  
+| `DB_NAME=` | Database Name for PostgreSQL |  
 | `DB_COL_ID=` | Table Column containing IDs |  
-| `DB_COL_BYTE=` | Table Column containing Image Bytes |  
+| `DB_COL_FN=` | Table Column containing Image File Name |  
 | `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  
 
 ## Todo
