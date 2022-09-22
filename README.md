@@ -26,7 +26,7 @@ docker build -t golang/cdn .
 
 ## Running it
 ```bash
-docker run -p 8080:3333 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPATH=/v1/ golang/cnd:latest
+docker run -p 8080:3333 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPATH=/v1/ golang/cdn:latest
 ```
 This will run the CDN with the following specifics:
 - Accessible at http://IP:8080/v1/image
@@ -38,7 +38,7 @@ This will run the CDN with the following specifics:
 version: '3.3'
 services:
     cnd:
-        image: 'golang/cnd:latest'
+        image: 'golang/cdn:latest'
         ports:
             - '8080:3333'
         volumes:
