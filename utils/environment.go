@@ -11,6 +11,8 @@ type settings struct {
 	DeliveringPort          string
 	DeliveringSubPath       string
 	DeliveringSubPathEnable string
+	EnableDeletion          string
+	EnableInsertion         string
 	DatabaseUsername        string
 	DatabasePassword        string
 	DatabasePort            string
@@ -27,6 +29,8 @@ var (
 		DeliveringPort:          "3333",
 		DeliveringSubPath:       "/image/",
 		DeliveringSubPathEnable: "true",
+		EnableDeletion:          "false",
+		EnableInsertion:         "false",
 		DatabaseUsername:        "",
 		DatabasePassword:        "",
 		DatabasePort:            "",
@@ -35,7 +39,7 @@ var (
 		DatabaseTableName:       "",
 		DatabaseIDColumn:        "",
 		DatabaseFilenameColumn:  "",
-		DatabaseSSL:             "disabled",
+		DatabaseSSL:             "disable",
 	}
 )
 
@@ -75,6 +79,8 @@ func LoadEnv() {
 	loadVar(loadDotEnv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(loadDotEnv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(loadDotEnv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)
+	loadVar(loadDotEnv("CDN_ENABLE_DELETE"), &EnvSettings.EnableDeletion)
+	loadVar(loadDotEnv("CDN_ENABLE_INSERTION"), &EnvSettings.EnableInsertion)
 	loadVar(loadDotEnv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(loadDotEnv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(loadDotEnv("DB_PORT"), &EnvSettings.DatabasePort)
@@ -89,6 +95,8 @@ func LoadEnv() {
 	loadVar(os.Getenv("CDN_PORT"), &EnvSettings.DeliveringPort)
 	loadVar(genDeliveringSubPath(os.Getenv("CDN_SUBPATH")), &EnvSettings.DeliveringSubPath)
 	loadVar(os.Getenv("CDN_SUBPATH_ENABLE"), &EnvSettings.DeliveringSubPathEnable)
+	loadVar(os.Getenv("CDN_ENABLE_DELETE"), &EnvSettings.EnableDeletion)
+	loadVar(os.Getenv("CDN_ENABLE_INSERTION"), &EnvSettings.EnableInsertion)
 	loadVar(os.Getenv("DB_USERNAME"), &EnvSettings.DatabaseUsername)
 	loadVar(os.Getenv("DB_PASSWORD"), &EnvSettings.DatabasePassword)
 	loadVar(os.Getenv("DB_PORT"), &EnvSettings.DatabasePort)

@@ -7,7 +7,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `CDN_PORT=3333` | Port used by CDN |  
 | `CDN_SUBPATH=/image/` | Subpath on which the resources will be served |  
 | `CDN_SUBPATH_ENABLE=true` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
-| `DB_USERNAME=` | Auth Username for PostgreSQL |  
+| `DB_USERNAME| Auth Username for PostgreSQL |  
 | `DB_PASSWORD=` | Auth Password for PostgreSQL |  
 | `DB_PORT=` | Port for PostgreSQL |  
 | `DB_URL=` | Database URL for PostgreSQL |  
@@ -17,11 +17,11 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  
 
 ## Todo
-- [ ] Insert, Remove Images
-- [ ] Select Database Storage (+Redis)
+- [x] Insert, Remove Images
+- [ ] Image Fixed Hash as ID - on Redis
+- [ ] Caching Redis
 - [x] Option to disable subpath
 - [x] File Mapping with ID
-- [ ] Caching
 - [ ] Auth
 - [ ] Compresssion
 - [ ] Geo Restriction

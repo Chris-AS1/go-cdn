@@ -31,13 +31,17 @@ func dbConnection() *sql.DB {
 	return db
 }
 
-func GetImageList() []string {
+func GetImageList() map[string]string {
 	log.Print("Connecting to DB...")
 	con := dbConnection()
 
 	// Variable Replacement of a table name not supported
-	rows, err := con.Query(fmt.Sprintf(`SELECT $1 FROM %s`, utils.EnvSettings.DatabaseTableName),
-		utils.EnvSettings.DatabaseFilenameColumn)
+	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
+	str := fmt.Sprintf("SELECT %s, %s FROM %s", utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn, utils.EnvSettings.DatabaseTableName)
+	log.Print(str)
+	// BUG
+	// rows, err := con.Query(str, utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn)
+	rows, err := con.Query(str)
 
 	defer rows.Close()
 
@@ -45,15 +49,21 @@ func GetImageList() []string {
 		log.Fatal(err)
 	}
 
-	var v []string
+	v := make(map[string]string)
+
 	for rows.Next() {
-		var r string
-		if err := rows.Scan(&r); err != nil {
-			log.Fatal(err)
+		var i string
+		var rea string
+
+		err := rows.Scan(&i, &rea)
+		if err != nil {
+			log.Panic(err)
 		}
-		log.Print(r)
-		v = append(v, r)
+		log.Print(i + " " + rea)
+		v[i] = rea
+
 	}
+	log.Fatal(v)
 
 	return v
 }
