@@ -6,9 +6,9 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 |---|---|
 | `CDN_PORT=3333` | Port used by CDN |  
 | `CDN_SUBPATH=/image/` | Subpath on which the resources will be served |  
-| `CDN_SUBPATH_ENABLE=true` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
-| `CDN_ENABLE_DELETE=true` | Enables the DELETE endpoint on all the images |  
-| `CDN_ENABLE_INSERTION=false` | Disables the POST endpoints |  
+| `CDN_SUBPATH_ENABLE=true\|false` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
+| `CDN_ENABLE_DELETE=true\|false` | Select if the DELETE endpoints are enabled |  
+| `CDN_ENABLE_INSERTION=true\|false` | Select if the POST endpoints are enabled |  
 | `DB_USERNAME=`| Auth Username for PostgreSQL |  
 | `DB_PASSWORD=` | Auth Password for PostgreSQL |  
 | `DB_PORT=` | Port for PostgreSQL |  
@@ -16,7 +16,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_NAME=` | Database Name for PostgreSQL |  
 | `DB_COL_ID=` | Table Column containing IDs |  
 | `DB_COL_FN=` | Table Column containing Image File Name |  
-| `DB_SSL=enabled\|disabled` | SSL Options for PostgreSQL |  
+| `DB_SSL=enable\|disable` | SSL Options for PostgreSQL |  
 
 # Docker Deployment
 ## Building the image
