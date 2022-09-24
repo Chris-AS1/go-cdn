@@ -37,7 +37,7 @@ This will run the CDN with the following specifics:
 ```docker
 version: '3.3'
 services:
-    go-cnd:
+    go-cdn:
         image: 'golang/cdn:latest'
         ports:
             - '8080:3333'
