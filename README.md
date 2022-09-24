@@ -30,7 +30,7 @@ docker run -p 8080:3333 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPAT
 ```
 This will run the CDN with the following specifics:
 - Accessible at http://IP:8080/v1/image
-- Local `resources` folder mapped to the internal directory in Read Only (Note that it shall be changed for the DELETE endpoint to work)
+- Local `resources` folder mapped to the internal directory in Read Only (Note that it shall be changed for the DELETE endpoint to work). You should always map the folder containing images to `/config/resources` on the container's path
 
 
 ## Compose
