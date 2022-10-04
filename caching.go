@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"log"
+	"os"
 
 	"github.com/go-redis/redis/v9"
 )
@@ -40,4 +44,22 @@ func PingRedis() string {
 	// } else {
 	// 	fmt.Println("key2", val2)
 	// }
+}
+
+func BuildFileMap() map[string]string {
+
+	files, err := os.ReadDir(dataFolder)
+	var ret = make(map[string]string)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		sum := sha256.Sum256([]byte(file.Name()))
+		sum2 := hex.EncodeToString(sum[:])
+		ret[sum2[:6]] = file.Name()
+	}
+
+	return ret
 }

@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  go-cdn:
+    build: .
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./resources:/config/resources:ro
+  redis:
+    image: "redis:alpine"

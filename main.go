@@ -36,26 +36,29 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "API v1")
 }
 
-func getFiles(dir string) map[int]string {
-	files, err := os.ReadDir(dataFolder)
-	var ret = make(map[int]string)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i, file := range files {
-		ret[i] = file.Name()
-	}
-
+func getFiles(dir string) map[string]string {
+	ret := BuildFileMap()
 	return ret
+
+	// files, err := os.ReadDir(dataFolder)
+	// var ret = make(map[int]string)
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// for i, file := range files {
+	// 	ret[i] = file.Name()
+	// }
+
+	// return ret
 }
 
 // Testing - Lists files on a directory
 func GetListHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	for k, v := range getFiles(dataFolder) {
-		io.WriteString(w, strconv.Itoa(k)+" "+v+"\n")
+		io.WriteString(w, k+" "+v+"\n")
 
 	}
 
@@ -85,26 +88,18 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	current_file_map := getFiles(dataFolder)
-	img_id_int, err := strconv.Atoi(img_id)
 
-	// If atoi fails (invalid ID)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Print(err)
-		return
-	}
-
-	_, ok := current_file_map[img_id_int]
+	_, ok := current_file_map[img_id]
 
 	// If ID NOT in map
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ResponseInvalidID)
-		log.Printf("Can't access ID: %s [%d]", img_id, img_id_int)
+		log.Printf("Can't access ID: %s [%d]", img_id, img_id)
 		return
 	}
 
-	buff, err := os.ReadFile(getImagePath(current_file_map[img_id_int]))
+	buff, err := os.ReadFile(getImagePath(current_file_map[img_id]))
 
 	// If read error
 	if err != nil {
@@ -158,7 +153,7 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, ok := current_file_map[img_id_int]
+	_, ok := current_file_map[img_id]
 
 	// If ID NOT in map
 	if !ok {
@@ -167,7 +162,7 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = os.Remove(getImagePath(current_file_map[img_id_int]))
+	err = os.Remove(getImagePath(current_file_map[img_id]))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{false, "error deleting file"})
