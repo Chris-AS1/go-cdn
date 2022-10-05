@@ -58,9 +58,9 @@ services:
     go-cdn:
         build: .
         ports:
-            - "3333:3333"
+            - "8080:3333"
         volumes:
-            - ./resources:/config/resources:ro
+            - PATH/resources:/config/resources:ro
         depends_on:
             - "redis"
     redis:
