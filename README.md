@@ -52,12 +52,12 @@ services:
 
 ## Todo
 - [x] Insert, Remove Images
-- [ ] Image Fixed Hash as ID - on Redis
+- [x] Image Fixed Hash as ID - on Redis
 - [ ] Caching Redis
 - [x] Option to disable subpath
 - [x] File Mapping with ID
-- [ ] Auth
+- [ ] Authentication
 - [ ] Compresssion
 - [ ] Geo Restriction
-- [ ] Postgres for Authentication
+- [ ] Try out Couchbase
 

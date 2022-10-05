@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"go-cdn/utils"
 	"log"
 	"os"
 
@@ -12,42 +13,28 @@ import (
 
 var (
 	ctx        = context.Background()
-	redis_addr = "localhost:6379"
+	redis_addr = utils.EnvSettings.RedisURL
+	rdb        *redis.Client
 )
 
-func PingRedis() string {
-	// log.Print("Connecting to Redis...")
-	rdb := redis.NewClient(&redis.Options{
+func ConnectRedis() string {
+	log.Print("Connecting to Redis...")
+	rdb = redis.NewClient(&redis.Options{
 		Addr:     redis_addr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
 
-	return rdb.Ping(ctx).String()
+	result, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// err := rdb.Set(ctx, "key", "value", 0).Err()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// val, err := rdb.Get(ctx, "key").Result()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println("key", val)
-
-	// val2, err := rdb.Get(ctx, "key2").Result()
-	// if err == redis.Nil {
-	// 	fmt.Println("key2 does not exist")
-	// } else if err != nil {
-	// 	panic(err)
-	// } else {
-	// 	fmt.Println("key2", val2)
-	// }
+	return result
 }
 
+// Hashmap with the current available files, <hash: string>:<filename: string>
 func BuildFileMap() map[string]string {
-
 	files, err := os.ReadDir(dataFolder)
 	var ret = make(map[string]string)
 
@@ -62,4 +49,14 @@ func BuildFileMap() map[string]string {
 	}
 
 	return ret
+}
+
+// Records image access on Redis - Most used cache
+func recordAccess(file_id string) int64 {
+	result, err := rdb.Incr(ctx, file_id).Result()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return result
 }

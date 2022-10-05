@@ -7,6 +7,6 @@ import (
 )
 
 func TestRedisConnection(t *testing.T) {
-	r := PingRedis()
+	r := ConnectRedis()
 	assert.Equal(t, r, "ping: PONG")
 }

@@ -6,5 +6,7 @@ services:
       - "3333:3333"
     volumes:
       - ./resources:/config/resources:ro
+    depends_on:
+      - "redis"
   redis:
     image: "redis:alpine"

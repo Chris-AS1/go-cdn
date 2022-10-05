@@ -28,6 +28,7 @@ var (
 	ResponseSuccess      = Response{Success: true}
 	ResponseInvalidImage = Response{Success: false, Message: "invalid image"}
 	ResponseInvalidID    = Response{Success: false, Message: "invalid ID"}
+	fileMap              = make(map[string]string)
 )
 
 // Root Handle - Version Number
@@ -36,37 +37,14 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "API v1")
 }
 
-func getFiles(dir string) map[string]string {
-	ret := BuildFileMap()
-	return ret
-
-	// files, err := os.ReadDir(dataFolder)
-	// var ret = make(map[int]string)
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// for i, file := range files {
-	// 	ret[i] = file.Name()
-	// }
-
-	// return ret
-}
-
-// Testing - Lists files on a directory
+// Lists files on a directory
 func GetListHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Authenticate
+
 	w.WriteHeader(http.StatusOK)
-	for k, v := range getFiles(dataFolder) {
+	for k, v := range fileMap {
 		io.WriteString(w, k+" "+v+"\n")
-
 	}
-
-	// w.WriteHeader(http.StatusOK)
-	// for k, v := range GetImageList() {
-	// 	io.WriteString(w, k+" "+v+"\n")
-	// }
-
 }
 
 // Builds the correct path given the filename
@@ -87,19 +65,19 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	current_file_map := getFiles(dataFolder)
-
-	_, ok := current_file_map[img_id]
+	// Gets filename from ID
+	_, ok := fileMap[img_id]
 
 	// If ID NOT in map
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ResponseInvalidID)
-		log.Printf("Can't access ID: %s [%d]", img_id, img_id)
+		log.Printf("Can't access ID: %s", img_id)
 		return
 	}
 
-	buff, err := os.ReadFile(getImagePath(current_file_map[img_id]))
+	// Reads image from disk
+	buff, err := os.ReadFile(getImagePath(fileMap[img_id]))
 
 	// If read error
 	if err != nil {
@@ -107,6 +85,8 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+
+	log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, recordAccess(img_id))
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpg")
@@ -143,26 +123,17 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	current_file_map := getFiles(dataFolder)
-	img_id_int, err := strconv.Atoi(img_id)
-
-	// If atoi fails (invalid ID)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Print(err)
-		return
-	}
-
-	_, ok := current_file_map[img_id]
+	// Gets filename from ID
+	_, ok := fileMap[img_id]
 
 	// If ID NOT in map
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Can't access ID: %s [%d]", img_id, img_id_int)
+		log.Printf("Can't access ID: %s", img_id)
 		return
 	}
 
-	err = os.Remove(getImagePath(current_file_map[img_id]))
+	err := os.Remove(getImagePath(fileMap[img_id]))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{false, "error deleting file"})
@@ -175,6 +146,8 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	utils.LoadEnv()
+	fileMap = BuildFileMap()
+	log.Printf("Redis connection: %s", ConnectRedis())
 
 	log.Print("Starting Server")
 
@@ -183,7 +156,7 @@ func main() {
 	// Disabled
 	// r.HandleFunc("/", RootHandler)
 
-	// Serving Path Selection
+	// Serving Image Path
 	b, err := strconv.ParseBool(utils.EnvSettings.DeliveringSubPathEnable)
 	if err != nil {
 		log.Panic(err)
@@ -224,7 +197,10 @@ func main() {
 		r.HandleFunc("/{id:[0-9]+}", GetImageHandler).Methods("GET")
 	}
 
+	// Serve List Path
 	r.HandleFunc("/list/", GetListHandler)
+
+	// Use Router
 	http.Handle("/", r)
 
 	srv := &http.Server{
