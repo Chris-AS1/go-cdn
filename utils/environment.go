@@ -22,6 +22,7 @@ type settings struct {
 	DatabaseIDColumn        string
 	DatabaseFilenameColumn  string
 	DatabaseSSL             string
+	RedisEnable             string
 	RedisURL                string
 }
 
@@ -41,6 +42,7 @@ var (
 		DatabaseIDColumn:        "",
 		DatabaseFilenameColumn:  "",
 		DatabaseSSL:             "disable",
+		RedisEnable:             "false",
 		RedisURL:                "redis:6379",
 	}
 )
@@ -92,6 +94,7 @@ func LoadEnv() {
 	loadVar(loadDotEnv("DB_COL_ID"), &EnvSettings.DatabaseIDColumn)
 	loadVar(loadDotEnv("DB_COL_FN"), &EnvSettings.DatabaseFilenameColumn)
 	loadVar(loadDotEnv("DB_SSL"), &EnvSettings.DatabaseSSL)
+	loadVar(loadDotEnv("REDIS_ENABLE"), &EnvSettings.RedisEnable)
 	loadVar(loadDotEnv("REDIS_URL"), &EnvSettings.RedisURL)
 
 	// Loads environment
@@ -109,5 +112,6 @@ func LoadEnv() {
 	loadVar(os.Getenv("DB_COL_ID"), &EnvSettings.DatabaseIDColumn)
 	loadVar(os.Getenv("DB_COL_FN"), &EnvSettings.DatabaseFilenameColumn)
 	loadVar(os.Getenv("DB_SSL"), &EnvSettings.DatabaseSSL)
+	loadVar(os.Getenv("REDIS_ENABLE"), &EnvSettings.RedisEnable)
 	loadVar(os.Getenv("REDIS_URL"), &EnvSettings.RedisURL)
 }

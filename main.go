@@ -86,7 +86,15 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, recordAccess(img_id))
+	// Cheks if Redis is enabled on env
+	b, err := strconv.ParseBool(utils.EnvSettings.RedisEnable)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if b {
+		log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, recordAccess(img_id))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpg")

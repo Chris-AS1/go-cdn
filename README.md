@@ -17,6 +17,7 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_COL_ID=` | Table Column containing IDs |  
 | `DB_COL_FN=` | Table Column containing Image File Name |  
 | `DB_SSL=enable\|disable` | SSL Options for PostgreSQL |  
+| `REDIS_ENABLE=false` | Select if Redis Caching should be enabled |  
 | `REDIS_URL=redis:6379` | Redis Connection URL (IP:Port) |  
 
 
@@ -50,6 +51,24 @@ services:
             - CDN_SUBPATH=/v1/
 ```
 
+And with Redis Caching:
+```docker
+version: '3.3'
+services:
+    go-cdn:
+        image: 'golang/cdn:latest'
+        ports:
+            - '8080:3333'
+        volumes:
+            - PATH/resources:/config/resources:ro
+        environment:
+            - CDN_SUBPATH=/v1/
+            - REDIS_ENABLE=true
+        depends_on:
+            - "redis"
+    redis:
+        image: "redis:alpine"
+```
 
 ---
 
