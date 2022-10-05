@@ -147,8 +147,8 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	utils.LoadEnv()
 	fileMap = BuildFileMap()
-	log.Printf("Redis connection: %s", ConnectRedis())
 
+	log.Printf("Redis connection: %s", ConnectRedis())
 	log.Print("Starting Server")
 
 	r := mux.NewRouter().StrictSlash(true)

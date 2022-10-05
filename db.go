@@ -10,6 +10,7 @@ import (
 )
 
 func dbConnection() *sql.DB {
+	log.Print("Connecting to DB...")
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		utils.EnvSettings.DatabaseUsername,
 		utils.EnvSettings.DatabasePassword,
@@ -32,7 +33,6 @@ func dbConnection() *sql.DB {
 }
 
 func GetImageList() map[string]string {
-	log.Print("Connecting to DB...")
 	con := dbConnection()
 
 	// Variable Replacement of a table name not supported
