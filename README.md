@@ -56,18 +56,19 @@ And with Redis Caching:
 version: '3.3'
 services:
     go-cdn:
-        image: 'golang/cdn:latest'
+        build: .
         ports:
-            - '8080:3333'
+            - "3333:3333"
         volumes:
-            - PATH/resources:/config/resources:ro
-        environment:
-            - CDN_SUBPATH=/v1/
-            - REDIS_ENABLE=true
+            - ./resources:/config/resources:ro
         depends_on:
             - "redis"
     redis:
-        image: "redis:alpine"
+        image: "redis:7-alpine"
+```
+Then to deploy:
+```bash
+docker compose up -d
 ```
 
 ---
