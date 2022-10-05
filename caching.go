@@ -12,16 +12,15 @@ import (
 )
 
 var (
-	ctx        = context.Background()
-	redis_addr = utils.EnvSettings.RedisURL
-	rdb        *redis.Client
+	ctx = context.Background()
+	rdb *redis.Client
 )
 
 func ConnectRedis() string {
 	log.Print("Connecting to Redis...")
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     redis_addr,
-		Password: "", // no password set
+		Addr:     utils.EnvSettings.RedisURL,
+		Password: "", // No Password
 		DB:       0,  // use default DB
 	})
 

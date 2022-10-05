@@ -17,6 +17,8 @@ Simple CDN made in Golang which aims to distribute files from a simple and easil
 | `DB_COL_ID=` | Table Column containing IDs |  
 | `DB_COL_FN=` | Table Column containing Image File Name |  
 | `DB_SSL=enable\|disable` | SSL Options for PostgreSQL |  
+| `REDIS_URL=redis:6379` | Redis Connection URL (IP:Port) |  
+
 
 # Docker Deployment
 ## Building the image
@@ -34,6 +36,7 @@ This will run the CDN with the following specifics:
 
 
 ## Compose
+Alternatively, using the following `docker-compose.yml` file:
 ```docker
 version: '3.3'
 services:
@@ -57,7 +60,7 @@ services:
 - [x] Option to disable subpath
 - [x] File Mapping with ID
 - [ ] Authentication
-- [ ] Compresssion
+- [ ] Compression
 - [ ] Geo Restriction
 - [ ] Try out Couchbase
 
