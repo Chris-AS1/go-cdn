@@ -28,7 +28,7 @@ var (
 	ResponseSuccess      = Response{Success: true}
 	ResponseInvalidImage = Response{Success: false, Message: "invalid image"}
 	ResponseInvalidID    = Response{Success: false, Message: "invalid ID"}
-	fileMap              = make(map[string]string)
+	fileMap              map[string]string
 )
 
 // Root Handle - Version Number
