@@ -79,11 +79,10 @@ docker compose up -d
 ## Todo
 - [x] Insert, Remove Images
 - [x] Image Fixed Hash as ID - on Redis
-- [ ] Caching Redis
+- [x] Caching Redis
 - [x] Option to disable subpath
 - [x] File Mapping with ID
 - [ ] Authentication
-- [ ] Compression
 - [ ] Geo Restriction
 - [ ] Try out Couchbase
 
