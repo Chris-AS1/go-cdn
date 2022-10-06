@@ -29,6 +29,8 @@ var (
 	ResponseInvalidImage = Response{Success: false, Message: "invalid image"}
 	ResponseInvalidID    = Response{Success: false, Message: "invalid ID"}
 	fileMap              map[string]string
+	ticker               = time.NewTicker(5 * time.Second)
+	quit                 = make(chan struct{})
 )
 
 // Root Handle - Version Number
@@ -50,6 +52,18 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 // Builds the correct path given the filename
 func getImagePath(filename string) string {
 	return fmt.Sprintf("%s/%s", dataFolder, filename)
+}
+
+func readImage(path string) (bool, []byte) {
+	buff, err := os.ReadFile(path)
+
+	// If read error
+	if err != nil {
+		log.Print(err)
+		return false, nil
+	}
+
+	return true, buff
 }
 
 // Returns a specified image
@@ -76,29 +90,39 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reads image from disk
-	buff, err := os.ReadFile(getImagePath(fileMap[img_id]))
-
-	// If read error
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Print(err)
-		return
-	}
-
 	// Cheks if Redis is enabled on env
 	b, err := strconv.ParseBool(utils.EnvSettings.RedisEnable)
 	if err != nil {
 		log.Panic(err)
 	}
 
+	var outBuf []byte
+	cache_ok := false
+
 	if b {
 		log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, recordAccess(img_id))
+
+		// Checks if ID is in cache
+		// TODO Wrap into single function because of double read from disk at first hit
+		cache_ok, outBuf = getFromCache(img_id)
+	}
+
+	if !cache_ok {
+		var read_ok bool
+		read_ok, outBuf = readImage(getImagePath(fileMap[img_id]))
+
+		if !read_ok {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ResponseInvalidImage)
+			return
+		}
+	} else {
+		log.Printf("[%s] %s: Got From Cache [%s]", r.Method, r.URL, img_id)
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpg")
-	w.Write(buff)
+	w.Write(outBuf)
 }
 
 // Adds image - TODO base64 + write file
@@ -152,12 +176,26 @@ func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(ResponseSuccess)
 }
 
+func refreshClock() {
+	for {
+		select {
+		case <-ticker.C:
+			refreshCache()
+		case <-quit:
+			ticker.Stop()
+			return
+		}
+	}
+}
+
 func main() {
 	utils.LoadEnv()
 	fileMap = BuildFileMap()
 
 	log.Printf("Redis connection: %s", ConnectRedis())
 	log.Print("Starting Server")
+
+	// go refreshClock()
 
 	r := mux.NewRouter().StrictSlash(true)
 
