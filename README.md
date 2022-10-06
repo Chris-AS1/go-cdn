@@ -61,6 +61,9 @@ services:
             - "8080:3333"
         volumes:
             - PATH/resources:/config/resources:ro
+        environment:
+            - CDN_SUBPATH=/v1/
+            - REDIS_ENABLE=true
         depends_on:
             - "redis"
     redis:
