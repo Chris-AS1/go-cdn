@@ -84,5 +84,7 @@ docker compose up -d
 - [x] File Mapping with ID
 - [ ] Authentication
 - [ ] Geo Restriction
-- [ ] Try out Couchbase
-
+- [ ] Resize feature via URL parameters
+- [ ] Edit redis.configs to implement LRU
+- [ ] Add distributed support
+- [ ] Try out Couchbase (?)
