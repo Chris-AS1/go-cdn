@@ -82,9 +82,9 @@ docker compose up -d
 - [x] Caching Redis
 - [x] Option to disable subpath
 - [x] File Mapping with ID
+- [x] Edit redis.configs to implement LRU
 - [ ] Authentication
 - [ ] Geo Restriction
 - [ ] Resize feature via URL parameters
-- [ ] Edit redis.configs to implement LRU
 - [ ] Add distributed support
 - [ ] Try out Couchbase (?)
