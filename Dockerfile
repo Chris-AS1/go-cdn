@@ -1,18 +1,24 @@
-FROM golang:1.18-alpine
+FROM golang:1.18-alpine as builder
 
 WORKDIR /config
 COPY go.mod ./
 COPY go.sum ./
 
-# Will be mounted
-RUN mkdir ./resources
-
 RUN go mod download
 
 COPY *.go ./
-COPY utils ./utils
+COPY . .
 
 RUN go build -o /go-cdn
 
+FROM golang:1.21-alpine as runtime
+WORKDIR /app
+
+# Will be externally mounted and served
+RUN mkdir ./resources
+
+COPY --from=builder /go-cdn /go-cdn
+
 EXPOSE 3333
-CMD [ "/go-cdn" ]
+
+ENTRYPOINT [ "/go-cdn" ]
