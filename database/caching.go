@@ -63,7 +63,7 @@ func BuildFileMap() map[string]string {
 }
 
 // Records image access on Redis - Most used cache
-func recordAccess(file_id string) int64 {
+func RecordAccess(file_id string) int64 {
 	result, err := rdb.ZIncrBy(ctx, "zset1", 1, file_id).Result()
 	if err != nil {
 		log.Panic(err)
@@ -72,7 +72,7 @@ func recordAccess(file_id string) int64 {
 	return int64(result)
 }
 
-func getFromCache(file_id string) (bool, []byte) {
+func GetFromCache(file_id string) (bool, []byte) {
 	result, err := rdb_bytes.Get(ctx, file_id).Result()
 
 	// "" If empty or nil (not error)

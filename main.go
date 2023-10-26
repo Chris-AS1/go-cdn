@@ -3,15 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
+	"go-cdn/database"
+	"go-cdn/utils"
 	"io"
 	"log"
 	"net/http"
 	"os"
-    "github.com/gorilla/mux"
 	"strconv"
 	"time"
-    "go-cdn/utils"
-    "go-cdn/database"
 )
 
 type GenericImage struct {
@@ -100,11 +100,11 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 	cache_ok := false
 
 	if b {
-		log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, recordAccess(img_id))
+		log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, database.RecordAccess(img_id))
 
 		// Checks if ID is in cache
 		// TODO Wrap into single function because of double read from disk at first hit
-		cache_ok, outBuf = getFromCache(img_id)
+		cache_ok, outBuf = database.GetFromCache(img_id)
 	}
 
 	if !cache_ok {
@@ -180,7 +180,7 @@ func refreshClock() {
 	for {
 		select {
 		case <-ticker.C:
-			refreshCache()
+			database.refreshCache()
 		case <-quit:
 			ticker.Stop()
 			return
@@ -190,9 +190,9 @@ func refreshClock() {
 
 func main() {
 	utils.LoadEnv()
-	fileMap = BuildFileMap()
+	fileMap = database.BuildFileMap()
 
-	log.Printf("Redis connection: %s", ConnectRedis())
+	log.Printf("Redis connection: %s", database.ConnectRedis())
 	log.Print("Starting Server")
 
 	// go refreshClock()
