@@ -3,15 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"go-cdn/utils"
 	"io"
 	"log"
 	"net/http"
 	"os"
+    "github.com/gorilla/mux"
 	"strconv"
 	"time"
-
-	"github.com/gorilla/mux"
+    "go-cdn/utils"
+    "go-cdn/database"
 )
 
 type GenericImage struct {
@@ -200,7 +200,7 @@ func main() {
 	r := mux.NewRouter().StrictSlash(true)
 
 	// Disabled
-	// r.HandleFunc("/", RootHandler)
+	r.HandleFunc("/", RootHandler)
 
 	// Serving Image Path
 	b, err := strconv.ParseBool(utils.EnvSettings.DeliveringSubPathEnable)
