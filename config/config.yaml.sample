@@ -4,3 +4,8 @@ consul:
   db: ""
   port: 0
 
+redis:
+  url: ""
+  password: ""
+  enable: true
+  db: 0

@@ -10,7 +10,9 @@ import (
 )
 
 type Config struct {
-	Consul Consul `mapstructure:"consul"`
+	Consul   Consul           `mapstructure:"consul"`
+	Redis    RedisDatabase    `mapstructure:"redis"`
+	Database DatabaseProvider `mapstructure:"database"`
 }
 
 type Consul struct {
@@ -21,15 +23,29 @@ type Consul struct {
 	ConsulPort        int    `mapstructure:"port"`
 }
 
+type RedisDatabase struct {
+	RedisAddress  string `mapstructure:"url"`
+	RedisPassword string `mapstructure:"password"`
+	RedisEnable   bool   `mapstructure:"enable"`
+	RedisDB       int    `mapstructure:"db"`
+}
+
+type DatabaseProvider struct {
+	DatabaseUsername string `mapstructure:"username"`
+	DatabasePassword string `mapstructure:"password"`
+	DatabasePort     string `mapstructure:"port"`
+	DatabaseURN      string `mapstructure:"urn"`
+	DatabaseSSL      string `mapstructure:"ssl"`
+}
+
 func NewConfig() Config {
 	consul_service_id := utils.RandStringBytes(4)
 	cfg := Config{
 		Consul{
-			ConsulServiceID:   consul_service_id,
-			ConsulServiceName: "",
-			ConsulAddress:     "",
-			ConsulPort:        0,
+			ConsulServiceID: consul_service_id,
 		},
+		RedisDatabase{},
+		DatabaseProvider{},
 	}
 
 	cfg.loadFromFile()
