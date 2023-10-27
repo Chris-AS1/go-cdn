@@ -46,7 +46,9 @@ func ConnectRedis() string {
 
 // Hashmap with the current available files, <hash: string>:<filename: string>
 func BuildFileMap() map[string]string {
-	files, err := os.ReadDir(dataFolder)
+	files, err := os.ReadDir("")
+    // TODO Fix
+	// files, err := os.ReadDir(dataFolder)
 	var ret = make(map[string]string)
 
 	if err != nil {
@@ -78,14 +80,14 @@ func GetFromCache(file_id string) (bool, []byte) {
 	// "" If empty or nil (not error)
 	if len(result) == 0 || err == redis.Nil {
 		log.Printf("[CACHE] Not found, adding it now [%s]", file_id)
-		buff, err := os.ReadFile(getImagePath(fileMap[file_id]))
+		// buff, err := os.ReadFile(getImagePath(fileMap[file_id]))
 
 		if err != nil {
 			log.Print(err)
 			return false, nil
 		}
 
-		_, err = rdb_bytes.Set(ctx, file_id, string(buff), 0).Result()
+		// _, err = rdb_bytes.Set(ctx, file_id, string(buff), 0).Result()
 
 		if err != nil {
 			log.Print(err)
@@ -98,7 +100,7 @@ func GetFromCache(file_id string) (bool, []byte) {
 }
 
 // Every X amount, check that DB 0 (HitN: Filenames) and DB 1 (Filenames: Bytes) are in sync
-func refreshCache() bool {
+func RefreshCache() bool {
 	// Get latest 3 scores
 	// TODO Check if they're max
 	result, err := rdb.ZRangeWithScores(ctx, "zset1", -3, -1).Result()

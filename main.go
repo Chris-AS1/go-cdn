@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"go-cdn/database"
 	"go-cdn/utils"
+	"go-cdn/config"
 	"io"
 	"log"
 	"net/http"
@@ -180,7 +181,7 @@ func refreshClock() {
 	for {
 		select {
 		case <-ticker.C:
-			database.refreshCache()
+			database.RefreshCache()
 		case <-quit:
 			ticker.Stop()
 			return
@@ -189,6 +190,12 @@ func refreshClock() {
 }
 
 func main() {
+    _ = config.NewConfig();
+
+
+}
+
+/* func main() {
 	utils.LoadEnv()
 	fileMap = database.BuildFileMap()
 
@@ -258,4 +265,4 @@ func main() {
 
 	log.Printf("Serving Port: %s", utils.EnvSettings.DeliveringPort)
 	log.Fatal(srv.ListenAndServe())
-}
+} */

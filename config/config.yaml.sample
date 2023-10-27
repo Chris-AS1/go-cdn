@@ -1,0 +1,6 @@
+consul:
+  service_name: ""
+  address: ""
+  db: ""
+  port: 0
+

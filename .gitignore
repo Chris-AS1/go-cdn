@@ -1,4 +1,6 @@
 .env
-docker-compose.yml
 *.png
 *.jpg
+go.sum
+docker-compose.yml
+config.yaml
