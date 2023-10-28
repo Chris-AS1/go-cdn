@@ -5,3 +5,7 @@
 go.sum
 docker-compose.yml
 config.yaml
+
+# Consul Services, samples already present
+postgres.json
+redis.json

@@ -69,4 +69,3 @@ go test -c
 - [ ] Geo Restriction
 - [ ] Resize feature via URL parameters
 - [ ] Add distributed support
-- [ ] Try out Couchbase (?)
