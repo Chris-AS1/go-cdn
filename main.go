@@ -186,26 +186,33 @@ func main() {
 	cfg, err := config.NewConfig()
 	// Handle Consul Connection/Registration
 	if err != nil {
-		log.Panic("Error reading config file, %s", err)
+		log.Panicf("Error reading config file, %s", err)
 	}
 
 	csl_client, err := consul.NewConsulClient(&cfg)
 	if err != nil {
-		log.Panic("Couldn't get Consul Client, connection failed", err)
+        log.Panicf("Couldn't get Consul Client, connection failed: %s", err)
 	}
 
 	if err = csl_client.RegisterService(&cfg); err != nil {
-		log.Panic("Couldn't register Consul Service", err)
+        log.Panicf("Couldn't register Consul Service: %s", err)
 	}
 	defer csl_client.DeregisterService(&cfg)
 
 	// Handle Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
+	if err != nil {
+        log.Panicf("Couldn't connect to Postgres: %s", err)
+	}
+
 	// Image list to be used on endpoints
 	_, err = pg_client.GetImageList(&cfg)
 
 	// Handle Redis Connection
-	rd_client, err := database.NewRedisClient(&cfg)
+	rd_client, err := database.NewRedisClient(csl_client, &cfg)
+	if err != nil {
+        log.Panicf("Couldn't connect to Redis: %s", err)
+	}
 	// TODO use redis as middleware before hitting postgres
 	_ = rd_client
 

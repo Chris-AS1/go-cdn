@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"go-cdn/config"
+	"go-cdn/consul"
 	"log"
 	"os"
 
@@ -17,18 +18,30 @@ type RedisClient struct {
 	rdb *redis.Client
 }
 
-func NewRedisClient(cfg *config.Config) (*RedisClient, error) {
+func NewRedisClient(csl *consul.ConsulClient, cfg *config.Config) (*RedisClient, error) {
 	rc := &RedisClient{
 		ctx: context.Background(),
 	}
-	_, err := rc.connect(cfg)
+	_, err := rc.connect(csl, cfg)
 	return rc, err
 }
 
-func (rc *RedisClient) connect(cfg *config.Config) (bool, error) {
+func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+	// Discovers postgres from Consul
+	address, port, err := csl.DiscoverService(cfg.Redis.RedisAddress)
+	if err != nil {
+		return "", err
+	}
+	connStr := fmt.Sprintf("%s:%d", address, port)
+	return connStr, nil
+
+}
+
+func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) (bool, error) {
 	log.Print("Connecting to Redis")
+	address, err := rc.GetConnectionString(csl, cfg)
 	rc.rdb = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.RedisAddress, cfg.Redis.RedisPort),
+		Addr:     address,
 		Password: cfg.Redis.RedisPassword,
 		DB:       cfg.Redis.RedisDB,
 	})

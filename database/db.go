@@ -33,11 +33,6 @@ func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresC
 	return pg_client, err
 }
 
-func (pg *PostgresClient) InitDB() error {
-
-    return nil
-}
-
 func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
 	// Discovers postgres from Consul
 	address, port, err := csl.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
