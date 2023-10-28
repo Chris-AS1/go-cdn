@@ -48,6 +48,14 @@ Then deploy it with:
 docker compose up -d
 ```
 
+# Testing
+Due the nature of Go, tests are ran inside their respective packages. This messes up the relative file paths regarding configs and migrations.
+To get around this limitation it's possible to compile each test individually, and then run it from the root of the folder:
+```bash
+go test -c
+./{PACKAGE}.test 
+```
+
 ---
 
 ## Todo
