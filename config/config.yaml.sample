@@ -1,18 +1,19 @@
 consul:
-  reg_service_name: ""
+  enable: true
+  service_name: ""
   address: ""
   db: ""
-  port: 0
+  port: 8500
 
 redis:
-  host: ""
-  password: ""
   enable: true
-  db: 0
+  host: "" 
+  password: ""
+  db: 1
 
 postgres:
-  host: ""
+  host: "" 
   database: ""
   username: ""
   password: ""
-  ssl: true
+  ssl: false
