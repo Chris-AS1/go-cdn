@@ -58,8 +58,7 @@ func TestConsulDeregistration(t *testing.T) {
 func TestConsulServiceDiscovery(t *testing.T) {
 	_, consul_client := loadConfigsAndGetClient(t)
 	// Discovers postgres from Consul
-	address, port, err := consul_client.DiscoverService("goo")
-	// address, port, err := consul_client.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
+	address, port, err := consul_client.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
 	if err != nil {
 		assert.FailNow(t, err.Error())
 	}

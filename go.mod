@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
+	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/hashicorp/consul/api v1.25.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
@@ -18,7 +19,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/golang-migrate/migrate/v4 v4.16.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
