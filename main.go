@@ -1,17 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/gorilla/mux"
-	"go-cdn/database"
-	"go-cdn/utils"
 	"go-cdn/config"
-	"io"
+	"go-cdn/consul"
+	"go-cdn/database"
 	"log"
-	"net/http"
-	"os"
-	"strconv"
 	"time"
 )
 
@@ -34,7 +27,7 @@ var (
 	quit                 = make(chan struct{})
 )
 
-// Root Handle - Version Number
+/* // Root Handle - Version Number
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, "API v1")
@@ -188,10 +181,33 @@ func refreshClock() {
 		}
 	}
 }
-
+*/
 func main() {
-    _ = config.NewConfig();
+	cfg, err := config.NewConfig()
+	// Handle Consul Connection/Registration
+	if err != nil {
+		log.Panic("Error reading config file, %s", err)
+	}
 
+	csl_client, err := consul.NewConsulClient(&cfg)
+	if err != nil {
+		log.Panic("Couldn't get Consul Client, connection failed", err)
+	}
+
+	if err = csl_client.RegisterService(&cfg); err != nil {
+		log.Panic("Couldn't register Consul Service", err)
+	}
+	defer csl_client.DeregisterService(&cfg)
+
+	// Handle Postgres Connection
+	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
+	// Image list to be used on endpoints
+	_, err = pg_client.GetImageList(&cfg)
+
+	// Handle Redis Connection
+	rd_client, err := database.NewRedisClient(&cfg)
+	// TODO use redis as middleware before hitting postgres
+	_ = rd_client
 
 }
 

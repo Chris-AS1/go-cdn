@@ -3,67 +3,75 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"go-cdn/utils"
+	"go-cdn/config"
+	"go-cdn/consul"
 	"log"
 
 	_ "github.com/lib/pq"
 )
 
-func dbConnection() *sql.DB {
-	log.Print("Connecting to DB...")
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		utils.EnvSettings.DatabaseUsername,
-		utils.EnvSettings.DatabasePassword,
-		utils.EnvSettings.DatabaseURL,
-		utils.EnvSettings.DatabasePort,
-		utils.EnvSettings.DatabaseName,
-		utils.EnvSettings.DatabaseSSL)
+type PostgresClient struct {
+	client *sql.DB
+}
+
+func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
+	// Discovers postgres from Consul
+	address, port, err := csl.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Print("Connecting to Postgres")
+    connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.DatabaseProvider.DatabaseUsername,
+		cfg.DatabaseProvider.DatabasePassword,
+		address,
+		port,
+		"database_name_todo",
+		cfg.DatabaseProvider.DatabaseSSL,
+	)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
-	return db
+	return &PostgresClient{db}, err
 }
 
-func GetImageList() map[string]string {
-	con := dbConnection()
-
+func (pg *PostgresClient) GetImageList(cfg *config.Config) (map[string]string, error) {
+	con := pg.client
 	// Variable Replacement of a table name not supported
 	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
-	str := fmt.Sprintf("SELECT %s, %s FROM %s", utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn, utils.EnvSettings.DatabaseTableName)
+	str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseTableName)
 	log.Print(str)
-	// BUG
-	// rows, err := con.Query(str, utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn)
-	rows, err := con.Query(str)
 
+	// BUG - To check again
+	// rows, err := con.Query(str, utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn)
+
+	rows, err := con.Query(str)
 	defer rows.Close()
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	v := make(map[string]string)
 
 	for rows.Next() {
 		var i string
-		var rea string
+		var row_n string
 
-		err := rows.Scan(&i, &rea)
-		if err != nil {
-			log.Panic(err)
+		if err := rows.Scan(&i, &row_n); err != nil {
+			return nil, err
 		}
-		log.Print(i + " " + rea)
-		v[i] = rea
+
+		log.Print(i + " " + row_n)
+		v[i] = row_n
 
 	}
-	log.Fatal(v)
 
-	return v
+	log.Print(v)
+	return v, nil
 }

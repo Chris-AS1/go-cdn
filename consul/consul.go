@@ -1,30 +1,46 @@
 package consul
 
 import (
+	"errors"
+	capi "github.com/hashicorp/consul/api"
 	"go-cdn/config"
 	"log"
-	capi "github.com/hashicorp/consul/api"
 )
 
-func GetClient(c *capi.Config) *capi.Client {
-	client, err := capi.NewClient(c)
-	if err != nil {
-		panic(err)
-	}
-	return client
+type ConsulClient struct {
+	client *capi.Client
 }
 
-func RegisterService(c *capi.Client, cfg config.Config) {
+func NewConsulClient(cfg *config.Config) (*ConsulClient, error) {
+	c := cfg.GetConsulConfig()
+	client, err := capi.NewClient(c)
+	return &ConsulClient{client}, err
+}
+
+func (csl *ConsulClient) RegisterService(cfg *config.Config) error {
+	c := csl.client
 	s := c.Agent()
 	serviceDefinition := cfg.GetServiceDefinition()
-	if err := s.ServiceRegister(&serviceDefinition); err != nil {
-		log.Panic(err)
-	}
+	err := s.ServiceRegister(&serviceDefinition)
+	return err
 }
 
-func DeregisterService(c *capi.Client, cfg config.Config) {
-	if err := c.Agent().ServiceDeregister(cfg.Consul.ConsulServiceID); err != nil {
-		log.Panic(err)
-	}
+func (csl *ConsulClient) DeregisterService(cfg *config.Config) error {
+	c := csl.client
+	err := c.Agent().ServiceDeregister(cfg.Consul.ConsulServiceID)
+	return err
 }
 
+func (csl *ConsulClient) DiscoverService(service_id string) (string, int, error) {
+	services, _, err := csl.client.Catalog().Service(service_id, "", nil)
+	if err != nil {
+		return "", -1, err
+	}
+
+	for _, s := range services {
+		log.Printf("Service: %s:%d", s.ServiceAddress, s.ServicePort)
+		return s.ServiceAddress, s.ServicePort, nil
+	}
+
+	return "", -1, errors.New("not found")
+}

@@ -1,11 +1,19 @@
 consul:
-  service_name: ""
+  reg_service_name: ""
   address: ""
   db: ""
   port: 0
 
 redis:
-  url: ""
+  host: ""
+  port: 0
   password: ""
   enable: true
   db: 0
+
+postgres:
+  host: ""
+  port: 0
+  username: ""
+  password: ""
+  ssl: true

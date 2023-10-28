@@ -4,50 +4,43 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"go-cdn/utils"
+	"fmt"
+	"go-cdn/config"
 	"log"
 	"os"
 
 	"github.com/go-redis/redis/v9"
 )
 
-var (
-	ctx       = context.Background()
-	rdb       *redis.Client
-	rdb_bytes *redis.Client
-)
+type RedisClient struct {
+	ctx context.Context
+	rdb *redis.Client
+}
 
-func ConnectRedis() string {
-	log.Print("Connecting to Redis...")
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     utils.EnvSettings.RedisURL,
-		Password: "", // No Password
-		DB:       0,  // use default DB
+func NewRedisClient(cfg *config.Config) (*RedisClient, error) {
+	rc := &RedisClient{
+		ctx: context.Background(),
+	}
+	_, err := rc.connect(cfg)
+	return rc, err
+}
+
+func (rc *RedisClient) connect(cfg *config.Config) (bool, error) {
+	log.Print("Connecting to Redis")
+	rc.rdb = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.RedisAddress, cfg.Redis.RedisPort),
+		Password: cfg.Redis.RedisPassword,
+		DB:       cfg.Redis.RedisDB,
 	})
 
-	rdb_bytes = redis.NewClient(&redis.Options{
-		Addr:     utils.EnvSettings.RedisURL,
-		Password: "", // No Password
-		DB:       1,  // use DB 1
-	})
-
-	result, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	result, err = rdb_bytes.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return result
+	result, err := rc.rdb.Ping(rc.ctx).Result()
+	return result == "ping: PONG", err
 }
 
 // Hashmap with the current available files, <hash: string>:<filename: string>
 func BuildFileMap() map[string]string {
 	files, err := os.ReadDir("")
-    // TODO Fix
+	// TODO Fix
 	// files, err := os.ReadDir(dataFolder)
 	var ret = make(map[string]string)
 
@@ -65,8 +58,8 @@ func BuildFileMap() map[string]string {
 }
 
 // Records image access on Redis - Most used cache
-func RecordAccess(file_id string) int64 {
-	result, err := rdb.ZIncrBy(ctx, "zset1", 1, file_id).Result()
+func (rc *RedisClient) RecordAccess(file_id string) int64 {
+	result, err := rc.rdb.ZIncrBy(rc.ctx, "zset1", 1, file_id).Result()
 	if err != nil {
 		log.Panic(err)
 	}
@@ -74,8 +67,8 @@ func RecordAccess(file_id string) int64 {
 	return int64(result)
 }
 
-func GetFromCache(file_id string) (bool, []byte) {
-	result, err := rdb_bytes.Get(ctx, file_id).Result()
+func (rc *RedisClient) GetFromCache(file_id string) (bool, []byte) {
+	result, err := rc.rdb.Get(rc.ctx, file_id).Result()
 
 	// "" If empty or nil (not error)
 	if len(result) == 0 || err == redis.Nil {
@@ -100,10 +93,10 @@ func GetFromCache(file_id string) (bool, []byte) {
 }
 
 // Every X amount, check that DB 0 (HitN: Filenames) and DB 1 (Filenames: Bytes) are in sync
-func RefreshCache() bool {
+func (rc *RedisClient) RefreshCache() bool {
 	// Get latest 3 scores
 	// TODO Check if they're max
-	result, err := rdb.ZRangeWithScores(ctx, "zset1", -3, -1).Result()
+	result, err := rc.rdb.ZRangeWithScores(rc.ctx, "zset1", -3, -1).Result()
 	if err != nil {
 		log.Fatalf("Redis Cache Error %#v", err)
 		return false
@@ -123,6 +116,5 @@ func RefreshCache() bool {
 	}
 
 	log.Printf("Refreshed Redis File Cache: %#v", result)
-
 	return false
 }
