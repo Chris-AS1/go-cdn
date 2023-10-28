@@ -18,30 +18,29 @@ type Config struct {
 }
 
 type Consul struct {
-	ConsulServiceID   string `mapstructure:"reg_service_id"` // Should not be present in configs.yaml. It's randomized for each instance
-	ConsulServiceName string `mapstructure:"reg_service_name"`
+	ConsulEnable      bool   `mapstructure:"enable"`
+	ConsulServiceID   string `mapstructure:"service_id"` // Should not be present in configs.yaml. It's randomized for each instance
+	ConsulServiceName string `mapstructure:"service_name"`
 	ConsulAddress     string `mapstructure:"address"`
 	ConsulDB          string `mapstructure:"db"`
 	ConsulPort        int    `mapstructure:"port"`
 }
 
 type RedisDatabase struct {
-	RedisAddress  string `mapstructure:"host"`
-	RedisPort     int    `mapstructure:"port"`
-	RedisPassword string `mapstructure:"password"`
 	RedisEnable   bool   `mapstructure:"enable"`
+	RedisAddress  string `mapstructure:"host"`
+	RedisPassword string `mapstructure:"password"`
 	RedisDB       int    `mapstructure:"db"`
 }
 
 type DatabaseProvider struct {
-	DatabaseUsername       string `mapstructure:"username"`
-	DatabasePassword       string `mapstructure:"password"`
-	DatabasePort           int    `mapstructure:"port"`
-	DatabaseHost           string `mapstructure:"host"`
-	DatabaseSSL            bool   `mapstructure:"ssl"`
-	DatabaseTableName      string
-	DatabaseColumnID       string
-	DatabaseColumnFilename string
+	DatabaseAddress  string `mapstructure:"host"`
+	DatabaseUsername string `mapstructure:"username"`
+	DatabasePassword string `mapstructure:"password"`
+	DatabaseName     string `mapstructure:"database"`
+	DatabaseSSL      bool   `mapstructure:"ssl"`
+	/* DatabaseColumnID       string
+	DatabaseColumnFilename string */
 }
 
 type HTTPServer struct {

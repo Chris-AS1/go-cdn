@@ -6,7 +6,12 @@ import (
 	"go-cdn/config"
 	"go-cdn/consul"
 	"log"
+	"strconv"
+	"strings"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
@@ -34,10 +39,20 @@ func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresC
 }
 
 func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
-	// Discovers postgres from Consul
-	address, port, err := csl.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
-	if err != nil {
-		return "", err
+    var err error
+    var address string
+    var port int
+
+	if cfg.Consul.ConsulEnable {
+		// Discovers postgres from Consul
+        address, port, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		cfg_adr := strings.Split(cfg.DatabaseProvider.DatabaseAddress, ":")
+		address = cfg_adr[0]
+		port, _ = strconv.Atoi(cfg_adr[1])
 	}
 
 	sslmode := ""
@@ -48,23 +63,45 @@ func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *con
 		sslmode = "enable"
 	}
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s&connect_timeout=5",
 		cfg.DatabaseProvider.DatabaseUsername,
 		cfg.DatabaseProvider.DatabasePassword,
 		address,
 		port,
-		"database_name_todo", //TODO
+		cfg.DatabaseProvider.DatabaseName,
 		sslmode,
 	)
 
 	return connStr, nil
 }
 
+func (pg *PostgresClient) MigrateDB() error {
+	driver, err := postgres.WithInstance(pg.client, &postgres.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations", // Relative, equal to ./migrations
+		"postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	// Why
+	if err.Error() == "no change" {
+		return nil
+	}
+	return err
+}
+
 func (pg *PostgresClient) GetImageList(cfg *config.Config) (map[string]string, error) {
 	con := pg.client
 	// Variable Replacement of a table name not supported
 	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
-	str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseTableName)
+	// str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseName)
+    var str string
 	log.Print(str)
 
 	// BUG - To check again

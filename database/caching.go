@@ -9,6 +9,8 @@ import (
 	"go-cdn/consul"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis/v9"
 )
@@ -27,11 +29,21 @@ func NewRedisClient(csl *consul.ConsulClient, cfg *config.Config) (*RedisClient,
 }
 
 func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
-	// Discovers postgres from Consul
-	address, port, err := csl.DiscoverService(cfg.Redis.RedisAddress)
-	if err != nil {
-		return "", err
+	var err error
+	var address string
+	var port int
+	if cfg.Consul.ConsulEnable {
+		// Discovers postgres from Consul
+		address, port, err = csl.DiscoverService(cfg.Redis.RedisAddress)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		cfg_adr := strings.Split(cfg.DatabaseProvider.DatabaseAddress, ":")
+		address = cfg_adr[0]
+		port, _ = strconv.Atoi(cfg_adr[1])
 	}
+
 	connStr := fmt.Sprintf("%s:%d", address, port)
 	return connStr, nil
 

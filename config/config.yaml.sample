@@ -6,14 +6,13 @@ consul:
 
 redis:
   host: ""
-  port: 0
   password: ""
   enable: true
   db: 0
 
 postgres:
   host: ""
-  port: 0
+  database: ""
   username: ""
   password: ""
   ssl: true
