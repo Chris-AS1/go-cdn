@@ -14,6 +14,7 @@ type Config struct {
 	Consul           Consul           `mapstructure:"consul"`
 	Redis            RedisDatabase    `mapstructure:"redis"`
 	DatabaseProvider DatabaseProvider `mapstructure:"postgres"`
+	HTTPServer       HTTPServer       `mapstructure:"http"`
 }
 
 type Consul struct {
@@ -37,10 +38,17 @@ type DatabaseProvider struct {
 	DatabasePassword       string `mapstructure:"password"`
 	DatabasePort           int    `mapstructure:"port"`
 	DatabaseHost           string `mapstructure:"host"`
-	DatabaseSSL            string `mapstructure:"ssl"`
+	DatabaseSSL            bool   `mapstructure:"ssl"`
 	DatabaseTableName      string
 	DatabaseColumnID       string
 	DatabaseColumnFilename string
+}
+
+type HTTPServer struct {
+	DeliveryPort   int    `mapstructure:"port"`
+	ServerSubPath  string `mapstructure:"path"`
+	AllowDeletion  bool   `mapstructure:"allow_delete"`
+	AllowInsertion bool   `mapstructure:"allow_insert"`
 }
 
 func NewConfig() (Config, error) {
@@ -49,8 +57,9 @@ func NewConfig() (Config, error) {
 		Consul{
 			ConsulServiceID: consul_service_id,
 		},
-		RedisDatabase{},
-		DatabaseProvider{},
+		RedisDatabase{RedisEnable: false},
+		DatabaseProvider{DatabaseSSL: false},
+		HTTPServer{DeliveryPort: 3000},
 	}
 
 	err := cfg.loadFromFile()
@@ -90,6 +99,6 @@ func (cfg *Config) GetConsulConfig() *capi.Config {
 	return &capi.Config{
 		Address:    fmt.Sprintf("%s:%d", cfg.Consul.ConsulAddress, cfg.Consul.ConsulPort),
 		Datacenter: cfg.Consul.ConsulDB,
-        Scheme: "http",
+		Scheme:     "http",
 	}
 }

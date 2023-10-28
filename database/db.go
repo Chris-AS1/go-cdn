@@ -15,21 +15,13 @@ type PostgresClient struct {
 }
 
 func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
-	// Discovers postgres from Consul
-	address, port, err := csl.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
+	log.Print("Connecting to Postgres")
+
+	pg_client := &PostgresClient{}
+	connStr, err := pg_client.GetConnectionString(csl, cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Print("Connecting to Postgres")
-    connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		cfg.DatabaseProvider.DatabaseUsername,
-		cfg.DatabaseProvider.DatabasePassword,
-		address,
-		port,
-		"database_name_todo",
-		cfg.DatabaseProvider.DatabaseSSL,
-	)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -37,7 +29,40 @@ func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresC
 	}
 
 	err = db.Ping()
-	return &PostgresClient{db}, err
+	pg_client.client = db
+	return pg_client, err
+}
+
+func (pg *PostgresClient) InitDB() error {
+
+    return nil
+}
+
+func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+	// Discovers postgres from Consul
+	address, port, err := csl.DiscoverService(cfg.DatabaseProvider.DatabaseHost)
+	if err != nil {
+		return "", err
+	}
+
+	sslmode := ""
+	switch cfg.DatabaseProvider.DatabaseSSL {
+	case false:
+		sslmode = "disable"
+	case true:
+		sslmode = "enable"
+	}
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.DatabaseProvider.DatabaseUsername,
+		cfg.DatabaseProvider.DatabasePassword,
+		address,
+		port,
+		"database_name_todo", //TODO
+		sslmode,
+	)
+
+	return connStr, nil
 }
 
 func (pg *PostgresClient) GetImageList(cfg *config.Config) (map[string]string, error) {
