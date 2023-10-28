@@ -100,39 +100,33 @@ func (pg *PostgresClient) MigrateDB() error {
 	return err
 }
 
-func (pg *PostgresClient) GetImageList(cfg *config.Config) (map[string]string, error) {
-	con := pg.client
+func (pg *PostgresClient) GetImageList(cfg *config.Config) (*map[string]int, error) {
 	// Variable Replacement of a table name not supported
 	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
 	// str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseName)
-	var str string
-	log.Print(str)
 
 	// BUG - To check again
 	// rows, err := con.Query(str, utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn)
 
-	rows, err := con.Query(str)
-	defer rows.Close()
+	con := pg.client
 
+	rows, err := con.Query(fmt.Sprintf("SELECT id, id_hash, filename FROM %s", "fs_entities"))
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	v := make(map[string]string)
+	available_files := make(map[string]int)
 
 	for rows.Next() {
-		var i string
-		var row_n string
-
-		if err := rows.Scan(&i, &row_n); err != nil {
+		var id int
+		var id_hash []byte
+		var filename string
+		if err := rows.Scan(&id, &id_hash, &filename); err != nil {
 			return nil, err
 		}
-
-		log.Print(i + " " + row_n)
-		v[i] = row_n
-
+		available_files[string(id_hash)] = id
 	}
 
-	log.Print(v)
-	return v, nil
+	return &available_files, nil
 }

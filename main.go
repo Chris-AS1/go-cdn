@@ -1,31 +1,12 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"go-cdn/config"
 	"go-cdn/consul"
 	"go-cdn/database"
-	"time"
-
 	"go.uber.org/zap"
-)
-
-type GenericImage struct {
-	Data string `json:"data"`
-}
-
-type Response struct {
-	Success bool   `json:"success"`
-	Message string `json:"message,omitempty"`
-}
-
-var (
-	dataFolder           = "./resources"
-	ResponseSuccess      = Response{Success: true}
-	ResponseInvalidImage = Response{Success: false, Message: "invalid image"}
-	ResponseInvalidID    = Response{Success: false, Message: "invalid ID"}
-	fileMap              map[string]string
-	ticker               = time.NewTicker(5 * time.Second)
-	quit                 = make(chan struct{})
+	"net/http"
 )
 
 /* // Root Handle - Version Number
@@ -183,6 +164,24 @@ func refreshClock() {
 	}
 }
 */
+
+func spawn_gin(available_files *map[string]int) error {
+	// Gin
+	r := gin.Default()
+	r.GET("/health", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
+	r.GET("/content/:hash", func(c *gin.Context) {
+		_, ok := (*available_files)[c.Param("hash")]
+		if ok {
+			c.String(http.StatusOK, "OK")
+		} else {
+			c.String(http.StatusOK, "BOOO")
+		}
+	})
+	err := r.Run("0.0.0.0:3000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	return err
+}
 func main() {
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
@@ -212,16 +211,23 @@ func main() {
 	defer pg_client.CloseConnection()
 
 	// Image list to be used on endpoints
-	_, err = pg_client.GetImageList(&cfg)
-
-	// Handle Redis Connection
-	rd_client, err := database.NewRedisClient(csl_client, &cfg)
+	available_files, err := pg_client.GetImageList(&cfg)
+	sugar.Info(available_files)
 	if err != nil {
-		sugar.Panicf("Couldn't connect to Redis: %s", err)
+		sugar.Panicf("Error retrieving current files: %s", err)
 	}
-	// TODO use redis as middleware before hitting postgres
-	_ = rd_client
+	// Handle Redis Connection
+	if cfg.Redis.RedisEnable {
+		rd_client, err := database.NewRedisClient(csl_client, &cfg)
+		if err != nil {
+			sugar.Panicf("Couldn't connect to Redis: %s", err)
+		}
+		// TODO use redis as middleware before hitting postgres
+		_ = rd_client
+	}
 
+	// gin.SetMode(gin.ReleaseMode) // Release Mode
+	spawn_gin(available_files)
 }
 
 /* func main() {
