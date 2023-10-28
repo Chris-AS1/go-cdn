@@ -4,8 +4,9 @@ import (
 	"go-cdn/config"
 	"go-cdn/consul"
 	"go-cdn/database"
-	"log"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type GenericImage struct {
@@ -183,27 +184,32 @@ func refreshClock() {
 }
 */
 func main() {
+	logger := zap.Must(zap.NewProduction())
+	defer logger.Sync()
+	sugar := logger.Sugar()
+
 	cfg, err := config.NewConfig()
 	// Handle Consul Connection/Registration
 	if err != nil {
-		log.Panicf("Error reading config file, %s", err)
+		sugar.Panic("Error reading config file, %s", err)
 	}
 
 	csl_client, err := consul.NewConsulClient(&cfg)
 	if err != nil {
-        log.Panicf("Couldn't get Consul Client, connection failed: %s", err)
+		sugar.Panicf("Couldn't get Consul Client, connection failed: %s", err)
 	}
 
 	if err = csl_client.RegisterService(&cfg); err != nil {
-        log.Panicf("Couldn't register Consul Service: %s", err)
+		sugar.Panicf("Couldn't register Consul Service: %s", err)
 	}
 	defer csl_client.DeregisterService(&cfg)
 
 	// Handle Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
 	if err != nil {
-        log.Panicf("Couldn't connect to Postgres: %s", err)
+		sugar.Panicf("Couldn't connect to Postgres: %s", err)
 	}
+	defer pg_client.CloseConnection()
 
 	// Image list to be used on endpoints
 	_, err = pg_client.GetImageList(&cfg)
@@ -211,7 +217,7 @@ func main() {
 	// Handle Redis Connection
 	rd_client, err := database.NewRedisClient(csl_client, &cfg)
 	if err != nil {
-        log.Panicf("Couldn't connect to Redis: %s", err)
+		sugar.Panicf("Couldn't connect to Redis: %s", err)
 	}
 	// TODO use redis as middleware before hitting postgres
 	_ = rd_client

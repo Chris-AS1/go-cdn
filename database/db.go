@@ -37,15 +37,19 @@ func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresC
 	pg_client.client = db
 	return pg_client, err
 }
+func (pg *PostgresClient) CloseConnection() error {
+	err := pg.client.Close()
+	return err
+}
 
 func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
-    var err error
-    var address string
-    var port int
+	var err error
+	var address string
+	var port int
 
 	if cfg.Consul.ConsulEnable {
 		// Discovers postgres from Consul
-        address, port, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
+		address, port, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
 		if err != nil {
 			return "", err
 		}
@@ -101,7 +105,7 @@ func (pg *PostgresClient) GetImageList(cfg *config.Config) (map[string]string, e
 	// Variable Replacement of a table name not supported
 	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
 	// str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseName)
-    var str string
+	var str string
 	log.Print(str)
 
 	// BUG - To check again

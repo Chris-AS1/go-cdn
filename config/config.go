@@ -72,7 +72,7 @@ func (cfg *Config) loadFromFile() error {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
-	viper.AddConfigPath("../config/")
+	viper.AddConfigPath("../config/") // To remove eventually
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("APP")
 
