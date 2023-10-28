@@ -1,75 +1,49 @@
-# Golang CDN
-Simple CDN made in Golang which aims to distribute files from a simple and easily deployable environment.
+# Golang Fileserver
+Microservice implementation of a file-server using PostgreSQL and Redis as databases.
+The program uses Consul to handle Service Discovery between instances, Redis as caching mechanism for most requested resources and PostgreSQL as primary Database.
 
-# Parameters
-| VAR | Description |
-|---|---|
-| `CDN_PORT=3333` | Port used by CDN |  
-| `CDN_SUBPATH=/image/` | Subpath on which the resources will be served |  
-| `CDN_SUBPATH_ENABLE=true\|false` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
-| `CDN_ENABLE_DELETE=true\|false` | Select if the DELETE endpoints are enabled |  
-| `CDN_ENABLE_INSERTION=true\|false` | Select if the POST endpoints are enabled |  
-| `DB_USERNAME=`| Auth Username for PostgreSQL |  
-| `DB_PASSWORD=` | Auth Password for PostgreSQL |  
-| `DB_PORT=` | Port for PostgreSQL |  
-| `DB_URL=` | Database URL for PostgreSQL |  
-| `DB_NAME=` | Database Name for PostgreSQL |  
-| `DB_COL_ID=` | Table Column containing IDs |  
-| `DB_COL_FN=` | Table Column containing Image File Name |  
-| `DB_SSL=enable\|disable` | SSL Options for PostgreSQL |  
-| `REDIS_ENABLE=false` | Select if Redis Caching should be enabled |  
-| `REDIS_URL=redis:6379` | Redis Connection URL (IP:Port) |  
+# Configuration Sample (config.yaml)
+```yaml
+consul:
+  reg_service_name: 
+  address:
+  db: 
+  port: 
+
+redis:
+  host: 
+  port:
+  password: 
+  enable:
+  db:
+
+postgres:
+  host:
+  port:
+  username:
+  password:
+  ssl:
+```
 
 
 # Docker Deployment
 ## Building the image
 ```bash
-docker build -t golang/cdn .
+docker build -t local/go-fs .
 ```
 
-## Running it
+## Run (TODO)
 ```bash
-docker run -p 8080:3333 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPATH=/v1/ golang/cdn:latest
+docker run -p 8080:3000 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPATH=/v1/ golang/cdn:latest
 ```
 This will run the CDN with the following specifics:
 - Accessible at http://IP:8080/v1/image
 - Local `resources` folder mapped to the internal directory in Read Only (Note that it shall be changed for the DELETE endpoint to work). You should always map the folder containing images to `/config/resources` on the container's path
 
 
-## Compose
-Alternatively, using the following `docker-compose.yml` file:
-```docker
-version: '3.3'
-services:
-    go-cdn:
-        image: 'golang/cdn:latest'
-        ports:
-            - '8080:3333'
-        volumes:
-            - PATH/resources:/config/resources:ro
-        environment:
-            - CDN_SUBPATH=/v1/
-```
-
-And with Redis Caching:
-```docker
-version: '3.3'
-services:
-    go-cdn:
-        build: .
-        ports:
-            - "8080:3333"
-        volumes:
-            - PATH/resources:/config/resources:ro
-        environment:
-            - CDN_SUBPATH=/v1/
-            - REDIS_ENABLE=true
-        depends_on:
-            - "redis"
-    redis:
-        image: "redis:7-alpine"
-```
-Then to deploy:
+## Docker Compose
+Alternatively, using the `docker-compose.yml` file provided.
+Then deploy it with:
 ```bash
 docker compose up -d
 ```
@@ -77,10 +51,10 @@ docker compose up -d
 ---
 
 ## Todo
-- [x] Insert, Remove Images
-- [x] Image Fixed Hash as ID - on Redis
-- [x] Caching Redis
-- [x] Option to disable subpath
+- [ ] Insert, Remove Images
+- [ ] Image Fixed Hash as ID - on Redis
+- [ ] Caching Redis
+- [ ] Option to disable subpath
 - [x] File Mapping with ID
 - [x] Edit redis.configs to implement LRU
 - [ ] Authentication
