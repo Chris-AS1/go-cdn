@@ -2,7 +2,7 @@ consul:
   enable: true
   service_name: ""
   address: ""
-  db: ""
+  datacenter: ""
   port: 8500
 
 redis:

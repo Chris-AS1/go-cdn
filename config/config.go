@@ -22,7 +22,7 @@ type Consul struct {
 	ConsulServiceID   string `mapstructure:"service_id"` // Should not be present in configs.yaml. It's randomized for each instance
 	ConsulServiceName string `mapstructure:"service_name"`
 	ConsulAddress     string `mapstructure:"address"`
-	ConsulDB          string `mapstructure:"db"`
+	ConsulDatacenter  string `mapstructure:"datacenter"`
 	ConsulPort        int    `mapstructure:"port"`
 }
 
@@ -97,7 +97,7 @@ func (cfg *Config) GetServiceDefinition() capi.AgentServiceRegistration {
 func (cfg *Config) GetConsulConfig() *capi.Config {
 	return &capi.Config{
 		Address:    fmt.Sprintf("%s:%d", cfg.Consul.ConsulAddress, cfg.Consul.ConsulPort),
-		Datacenter: cfg.Consul.ConsulDB,
+		Datacenter: cfg.Consul.ConsulDatacenter,
 		Scheme:     "http",
 	}
 }
