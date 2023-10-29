@@ -10,33 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-/* // Root Handle - Version Number
-func RootHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, "API v1")
-}
-
-// Lists files on a directory
-func GetListHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Authenticate
-
-	w.WriteHeader(http.StatusOK)
-	for k, v := range fileMap {
-		io.WriteString(w, k+" "+v+"\n")
-	}
-}
-
-// Builds the correct path given the filename
-func getImagePath(filename string) string {
-	return fmt.Sprintf("%s/%s", dataFolder, filename)
-}
-*/
-
 func main() {
+    // Logger
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
+    // Yaml Configurations
 	cfg, err := config.NewConfig()
 	dbg, _ := json.Marshal(cfg)
 	sugar.Info("Loaded following configs:", string(dbg))

@@ -48,3 +48,17 @@ func TestRedisAddToCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, bytes)
 }
+
+func TestRedisRemoveFromCache(t *testing.T) {
+	cfg, err := config.NewConfig()
+	assert.Nil(t, err)
+
+	csl_client, err := consul.NewConsulClient(&cfg)
+	assert.Nil(t, err)
+
+	rd_client, err := NewRedisClient(csl_client, &cfg)
+	assert.Nil(t, err)
+
+	_, err = rd_client.RemoveFromCache("000")
+	assert.Nil(t, err)
+}
