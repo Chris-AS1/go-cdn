@@ -43,7 +43,7 @@ docker compose logs -f
 Due the nature of Go, tests are ran inside their respective packages. This creates confusion with the relative paths regarding configs and migrations.
 To get around this limitation it's possible to compile each test individually, and then run it from the root of the folder:
 ```bash
-go test -c
+go test -c ./...
 ./{PACKAGE}.test 
 ```
 

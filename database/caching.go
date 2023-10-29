@@ -49,7 +49,7 @@ func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config
 
 }
 
-func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) (bool, error) {
+func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) error {
 	log.Print("Connecting to Redis")
 	address, err := rc.GetConnectionString(csl, cfg)
 	rc.rdb = redis.NewClient(&redis.Options{
@@ -58,8 +58,8 @@ func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) (bo
 		DB:       cfg.Redis.RedisDB,
 	})
 
-	result, err := rc.rdb.Ping(rc.ctx).Result()
-	return result == "ping: PONG", err
+	_, err = rc.rdb.Ping(rc.ctx).Result()
+	return err
 }
 
 // Hashmap with the current available files, <hash: string>:<filename: string>

@@ -10,17 +10,11 @@ import (
 
 func TestRedisConnection(t *testing.T) {
 	cfg, err := config.NewConfig()
-	if err != nil {
-		assert.FailNow(t, err.Error())
-	}
+	assert.Nil(t, err)
 
 	csl_client, err := consul.NewConsulClient(&cfg)
-	if err != nil {
-		assert.FailNow(t, err.Error())
-	}
+	assert.Nil(t, err)
 
 	_, err = NewRedisClient(csl_client, &cfg)
-	if err != nil {
-		assert.FailNow(t, err.Error())
-	}
+	assert.Nil(t, err)
 }

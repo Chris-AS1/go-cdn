@@ -49,10 +49,14 @@ func getFileHandler(state *GinState, available_files *map[string]int) gin.Handle
 					c.String(http.StatusBadRequest, "")
 					return
 				}
-				c.Data(http.StatusOK, "image", bytes)
+				if bytes != nil {
+					c.Data(http.StatusOK, "image", bytes)
+					return
+				}
 			}
 			// 2. Check if in Postgres
 		} else {
+            state.PgClient.GetFile(hash)
 			c.String(http.StatusOK, "BOOO")
 		}
 	}

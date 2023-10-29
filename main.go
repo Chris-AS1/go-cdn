@@ -6,6 +6,7 @@ import (
 	"go-cdn/consul"
 	"go-cdn/database"
 	"go-cdn/server"
+
 	"go.uber.org/zap"
 )
 
@@ -28,123 +29,6 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 // Builds the correct path given the filename
 func getImagePath(filename string) string {
 	return fmt.Sprintf("%s/%s", dataFolder, filename)
-}
-
-func readImage(path string) (bool, []byte) {
-	buff, err := os.ReadFile(path)
-
-	// If read error
-	if err != nil {
-		log.Print(err)
-		return false, nil
-	}
-
-	return true, buff
-}
-
-// Returns a specified image
-func GetImageHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s", r.Method, r.URL)
-	vars := mux.Vars(r)
-	img_id := vars["id"]
-
-	// If empty ID
-	if img_id == "null" || img_id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ResponseInvalidID)
-		return
-	}
-
-	// Gets filename from ID
-	_, ok := fileMap[img_id]
-
-	// If ID NOT in map
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ResponseInvalidID)
-		log.Printf("Can't access ID: %s", img_id)
-		return
-	}
-
-	// Cheks if Redis is enabled on env
-	b, err := strconv.ParseBool(utils.EnvSettings.RedisEnable)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	var outBuf []byte
-	cache_ok := false
-
-	if b {
-		log.Printf("[%s] %s: Hit Times [%d]", r.Method, r.URL, database.RecordAccess(img_id))
-
-		// Checks if ID is in cache
-		// TODO Wrap into single function because of double read from disk at first hit
-		cache_ok, outBuf = database.GetFromCache(img_id)
-	}
-
-	if !cache_ok {
-		var read_ok bool
-		read_ok, outBuf = readImage(getImagePath(fileMap[img_id]))
-
-		if !read_ok {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ResponseInvalidImage)
-			return
-		}
-	} else {
-		log.Printf("[%s] %s: Got From Cache [%s]", r.Method, r.URL, img_id)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "image/jpg")
-	w.Write(outBuf)
-}
-
-// Deletes an image from disk
-func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s", r.Method, r.URL)
-	vars := mux.Vars(r)
-	img_id := vars["id"]
-
-	// If empty ID
-	if img_id == "null" || img_id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ResponseInvalidID)
-		return
-	}
-
-	// Gets filename from ID
-	_, ok := fileMap[img_id]
-
-	// If ID NOT in map
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Can't access ID: %s", img_id)
-		return
-	}
-
-	err := os.Remove(getImagePath(fileMap[img_id]))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(Response{false, "error deleting file"})
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ResponseSuccess)
-}
-
-func refreshClock() {
-	for {
-		select {
-		case <-ticker.C:
-			database.RefreshCache()
-		case <-quit:
-			ticker.Stop()
-			return
-		}
-	}
 }
 */
 
@@ -181,7 +65,7 @@ func main() {
 
 	// Image list to be used on endpoints
 	available_files, err := pg_client.GetFileList()
-	sugar.Info(available_files)
+	sugar.Infow("available files", available_files)
 	if err != nil {
 		sugar.Panicf("Error retrieving current files: %s", err)
 	}
@@ -195,14 +79,15 @@ func main() {
 		}
 	}
 
+	// Gin Setup
 	// gin.SetMode(gin.ReleaseMode) // Release Mode
 
-    gin_state := &server.GinState{
-        Config: &cfg,
-        RedisClient: rd_client,
-        PgClient: pg_client,
-        Sugar: sugar,
-    }
+	gin_state := &server.GinState{
+		Config:      &cfg,
+		RedisClient: rd_client,
+		PgClient:    pg_client,
+		Sugar:       sugar,
+	}
 
 	if err = server.SpawnGin(gin_state, available_files); err != nil {
 		sugar.Panicf("Gin returned an error: %s", err)

@@ -2,11 +2,10 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/consul"
-	"go-cdn/utils"
-	"log"
 	"strconv"
 	"strings"
 
@@ -21,8 +20,6 @@ type PostgresClient struct {
 }
 
 func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
-	log.Print("Connecting to Postgres")
-
 	pg_client := &PostgresClient{}
 	connStr, err := pg_client.GetConnectionString(csl, cfg)
 	if err != nil {
@@ -98,8 +95,7 @@ func (pg *PostgresClient) MigrateDB() error {
 	}
 
 	err = m.Up()
-	// Why
-	if err.Error() == "no change" {
+	if errors.Is(err, migrate.ErrNoChange) {
 		return nil
 	}
 	return err
@@ -108,9 +104,15 @@ func (pg *PostgresClient) MigrateDB() error {
 // Adds the byte stream as file in the database
 func (pg *PostgresClient) AddFile(id_hash string, filename string, content []byte) error {
 	con := pg.client
-	hash := utils.RandStringBytes(6)
-	rows, err := con.Query(fmt.Sprintf("INSERT INTO %s VALUES(id_hash, filename, content) ", "fs_entities", hash))
-	defer rows.Close()
+	// hash := utils.RandStringBytes(6)
+	_, err := con.Exec(`INSERT INTO fs_entities (id_hash, filename, content) VALUES ($1, $2, $3)`, id_hash, filename, content)
+	return err
+}
+
+// Removes the file from teh database, if present
+func (pg *PostgresClient) RemoveFile(id_hash string) error {
+	con := pg.client
+	_, err := con.Exec(`DELETE FROM fs_entities WHERE id_hash=$1`, id_hash)
 	return err
 }
 

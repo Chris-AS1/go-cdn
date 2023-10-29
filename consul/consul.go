@@ -2,9 +2,9 @@ package consul
 
 import (
 	"errors"
-	capi "github.com/hashicorp/consul/api"
 	"go-cdn/config"
-	"log"
+
+	capi "github.com/hashicorp/consul/api"
 )
 
 type ConsulClient struct {
@@ -38,7 +38,6 @@ func (csl *ConsulClient) DiscoverService(service_id string) (string, int, error)
 	}
 
 	for _, s := range services {
-		log.Printf("Service: %s:%d", s.ServiceAddress, s.ServicePort)
 		return s.ServiceAddress, s.ServicePort, nil
 	}
 
