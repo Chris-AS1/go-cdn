@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/consul"
+	"go-cdn/utils"
 	"log"
 	"strconv"
 	"strings"
@@ -37,11 +38,14 @@ func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresC
 	pg_client.client = db
 	return pg_client, err
 }
+
+// Handle the termination of the connection
 func (pg *PostgresClient) CloseConnection() error {
 	err := pg.client.Close()
 	return err
 }
 
+// Retrieves the connection string. Interrogates Consul if set
 func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
 	var err error
 	var address string
@@ -79,6 +83,7 @@ func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *con
 	return connStr, nil
 }
 
+// Apply all up-migrations under ./migrations
 func (pg *PostgresClient) MigrateDB() error {
 	driver, err := postgres.WithInstance(pg.client, &postgres.Config{})
 	if err != nil {
@@ -100,7 +105,17 @@ func (pg *PostgresClient) MigrateDB() error {
 	return err
 }
 
-func (pg *PostgresClient) GetImageList(cfg *config.Config) (*map[string]int, error) {
+// Adds the byte stream as file in the database
+func (pg *PostgresClient) AddFile(id_hash string, filename string, content []byte) error {
+	con := pg.client
+	hash := utils.RandStringBytes(6)
+	rows, err := con.Query(fmt.Sprintf("INSERT INTO %s VALUES(id_hash, filename, content) ", "fs_entities", hash))
+	defer rows.Close()
+	return err
+}
+
+// Queries the files saved on the database
+func (pg *PostgresClient) GetFileList() (*map[string]int, error) {
 	// Variable Replacement of a table name not supported
 	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
 	// str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseName)
@@ -120,7 +135,7 @@ func (pg *PostgresClient) GetImageList(cfg *config.Config) (*map[string]int, err
 
 	for rows.Next() {
 		var id int
-		var id_hash []byte
+		var id_hash string
 		var filename string
 		if err := rows.Scan(&id, &id_hash, &filename); err != nil {
 			return nil, err
@@ -129,4 +144,27 @@ func (pg *PostgresClient) GetImageList(cfg *config.Config) (*map[string]int, err
 	}
 
 	return &available_files, nil
+}
+
+// Queries the specified file saved on the database
+// TODO Return a structure representing the file
+func (pg *PostgresClient) GetFile(id_hash string) ([]byte, error) {
+	con := pg.client
+	rows, err := con.Query(fmt.Sprintf("SELECT id, id_hash, filename, content FROM %s WHERE id_hash=%s", "fs_entities", id_hash))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var content []byte
+	for rows.Next() {
+		var id int
+		var id_hash string
+		var filename string
+		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil {
+			return nil, err
+		}
+	}
+
+	return content, err
 }

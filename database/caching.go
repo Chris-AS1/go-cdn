@@ -92,29 +92,13 @@ func (rc *RedisClient) RecordAccess(file_id string) int64 {
 	return int64(result)
 }
 
-func (rc *RedisClient) GetFromCache(file_id string) (bool, []byte) {
-	result, err := rc.rdb.Get(rc.ctx, file_id).Result()
-
-	// "" If empty or nil (not error)
-	if len(result) == 0 || err == redis.Nil {
-		log.Printf("[CACHE] Not found, adding it now [%s]", file_id)
-		// buff, err := os.ReadFile(getImagePath(fileMap[file_id]))
-
-		if err != nil {
-			log.Print(err)
-			return false, nil
-		}
-
-		// _, err = rdb_bytes.Set(ctx, file_id, string(buff), 0).Result()
-
-		if err != nil {
-			log.Print(err)
-		}
-
-		return false, nil
-	} else {
-		return true, []byte(result)
+func (rc *RedisClient) GetFromCache(id_hash string) ([]byte, error) {
+	result, err := rc.rdb.Get(rc.ctx, id_hash).Bytes()
+	if err != nil {
+		return nil, err
 	}
+
+	return result, nil
 }
 
 // Every X amount, check that DB 0 (HitN: Filenames) and DB 1 (Filenames: Bytes) are in sync

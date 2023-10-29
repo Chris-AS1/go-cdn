@@ -1,10 +1,8 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"go-cdn/utils"
-	"log"
 
 	capi "github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
@@ -62,8 +60,6 @@ func NewConfig() (Config, error) {
 	}
 
 	err := cfg.loadFromFile()
-	dbg, _ := json.MarshalIndent(cfg, "", "  ")
-	log.Print("Loaded following configs:", string(dbg))
 	return cfg, err
 }
 

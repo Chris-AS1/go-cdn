@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/json"
 	"go-cdn/config"
 	"go-cdn/consul"
 	"go-cdn/database"
+	"go-cdn/server"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 /* // Root Handle - Version Number
@@ -101,23 +101,6 @@ func GetImageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(outBuf)
 }
 
-// Adds image - TODO base64 + write file
-func PostImageHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s", r.Method, r.URL)
-
-	var img_to_add GenericImage
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&img_to_add)
-	if err != nil {
-		log.Panic(err)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ResponseInvalidImage)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ResponseSuccess)
-}
-
 // Deletes an image from disk
 func DeleteImageHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[%s] %s", r.Method, r.URL)
@@ -165,29 +148,15 @@ func refreshClock() {
 }
 */
 
-func spawn_gin(available_files *map[string]int) error {
-	// Gin
-	r := gin.Default()
-	r.GET("/health", func(c *gin.Context) {
-		c.String(http.StatusOK, "OK")
-	})
-	r.GET("/content/:hash", func(c *gin.Context) {
-		_, ok := (*available_files)[c.Param("hash")]
-		if ok {
-			c.String(http.StatusOK, "OK")
-		} else {
-			c.String(http.StatusOK, "BOOO")
-		}
-	})
-	err := r.Run("0.0.0.0:3000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-	return err
-}
 func main() {
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
 	cfg, err := config.NewConfig()
+	dbg, _ := json.Marshal(cfg)
+	sugar.Info("Loaded following configs:", string(dbg))
+
 	// Handle Consul Connection/Registration
 	if err != nil {
 		sugar.Panic("Error reading config file, %s", err)
@@ -211,23 +180,33 @@ func main() {
 	defer pg_client.CloseConnection()
 
 	// Image list to be used on endpoints
-	available_files, err := pg_client.GetImageList(&cfg)
+	available_files, err := pg_client.GetFileList()
 	sugar.Info(available_files)
 	if err != nil {
 		sugar.Panicf("Error retrieving current files: %s", err)
 	}
+
 	// Handle Redis Connection
+	var rd_client *database.RedisClient
 	if cfg.Redis.RedisEnable {
-		rd_client, err := database.NewRedisClient(csl_client, &cfg)
+		rd_client, err = database.NewRedisClient(csl_client, &cfg)
 		if err != nil {
 			sugar.Panicf("Couldn't connect to Redis: %s", err)
 		}
-		// TODO use redis as middleware before hitting postgres
-		_ = rd_client
 	}
 
 	// gin.SetMode(gin.ReleaseMode) // Release Mode
-	spawn_gin(available_files)
+
+    gin_state := &server.GinState{
+        Config: &cfg,
+        RedisClient: rd_client,
+        PgClient: pg_client,
+        Sugar: sugar,
+    }
+
+	if err = server.SpawnGin(gin_state, available_files); err != nil {
+		sugar.Panicf("Gin returned an error: %s", err)
+	}
 }
 
 /* func main() {
