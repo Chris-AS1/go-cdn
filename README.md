@@ -53,18 +53,3 @@ To get around this limitation it's possible to compile each test individually, a
 go test -c ./...
 ./{PACKAGE}.test 
 ```
-
----
-
-## Todo
-- [x] Insert, Remove Images
-- [x] Image Fixed Hash as ID - on Redis
-- [x] Caching Redis
-- [ ] Option to disable subpath
-- [x] File Mapping with ID
-- [x] Edit redis.configs to implement LRU
-- [ ] Authentication
-- [ ] Geo Restriction
-- [ ] Resize feature via URL parameters
-- [x] Add distributed support
-- [ ] Add ELK setup/log collection
