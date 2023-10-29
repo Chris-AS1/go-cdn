@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
-    // Logger
+	// Logger
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-    // Yaml Configurations
+	// Yaml Configurations
 	cfg, err := config.NewConfig()
 	dbg, _ := json.Marshal(cfg)
 	sugar.Info("Loaded following configs:", string(dbg))
@@ -36,14 +36,17 @@ func main() {
 	}
 	defer csl_client.DeregisterService(&cfg)
 
-	// Handle Postgres Connection
+	// Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
 	if err != nil {
 		sugar.Panicf("Couldn't connect to Postgres: %s", err)
 	}
 	defer pg_client.CloseConnection()
+	if err = pg_client.MigrateDB(); err != nil {
+		sugar.Panicf("Couldn't apply migrations to Postgres: %s", err)
+	}
 
-	// Handle Redis Connection
+	// Redis Connection
 	var rd_client *database.RedisClient
 	if cfg.Redis.RedisEnable {
 		rd_client, err = database.NewRedisClient(csl_client, &cfg)

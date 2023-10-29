@@ -81,12 +81,20 @@ func (cfg *Config) loadFromFile() error {
 }
 
 func (cfg *Config) GetServiceDefinition() capi.AgentServiceRegistration {
+	this_addr := utils.GetLocalIPv4() // Find the local address if deployed in docker
 	csl := cfg.Consul
 	return capi.AgentServiceRegistration{
 		ID:      csl.ConsulServiceID,
 		Name:    csl.ConsulServiceName,
-		Address: csl.ConsulAddress,
-		Port:    csl.ConsulPort,
+		Address: this_addr,
+		Port:    cfg.HTTPServer.DeliveryPort,
+		Check: &capi.AgentServiceCheck{
+			Name:                           "web_alive",
+			Interval:                       "10s",
+			Timeout:                        "30s",
+			HTTP:                           fmt.Sprintf("http://%s:%d/health", this_addr, cfg.HTTPServer.DeliveryPort),
+			DeregisterCriticalServiceAfter: "1m",
+		},
 	}
 }
 
