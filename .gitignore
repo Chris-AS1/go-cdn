@@ -1,11 +1,14 @@
-.env
-*.png
 *.jpg
-*.test
-go.sum
+.env
 config.yaml
+
+# Builds
+*.test
 go-cdn
+go.sum
 
 # Consul Services, samples already present
 postgres.json
 redis.json
+
+/resources

@@ -1,6 +1,9 @@
 # Go Fileserver
 Go microservice that serves BLOBs from PostgreSQL via a REST API, using Redis as cache (LFU), Consul for Service Discovery and HAProxy as Load Balancer (soontm).
 
+## Architecture
+![architecture](./assets/architecture_sketch.png)
+
 # Configuration Sample (config.yaml)
 ```yaml
 consul:
