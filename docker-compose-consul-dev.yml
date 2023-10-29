@@ -3,8 +3,8 @@ services:
   consul:
     image: hashicorp/consul:latest
     volumes:
-     - ./config/consul.json:/consul/config/server.json
-     - ./config/postgres.json:/consul/config/postgres.json
+     - ./config/consul.json.sample:/consul/config/server.json
+     - ./config/postgres.json.sample:/consul/config/postgres.json
     ports:
       - "8500:8500"
       - "8600:8600/tcp"
