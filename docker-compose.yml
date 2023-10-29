@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - "./config/config.yaml:/cdn/config.yaml:ro"
+      - "./config/config-docker.yaml:/cdn/config.yaml:ro"
     depends_on:
       - "consul"
       - "redis"
