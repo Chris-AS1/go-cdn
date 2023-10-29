@@ -17,3 +17,7 @@ postgres:
   username: ""
   password: ""
   ssl: false
+
+http:
+  allow_insert: true
+  allow_delete: true

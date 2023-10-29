@@ -22,6 +22,10 @@ postgres:
   username:
   password: 
   ssl: 
+
+http:
+  allow_insert: 
+  allow_delete:
 ```
 
 
@@ -50,9 +54,9 @@ go test -c ./...
 ---
 
 ## Todo
-- [ ] Insert, Remove Images
-- [ ] Image Fixed Hash as ID - on Redis
-- [ ] Caching Redis
+- [x] Insert, Remove Images
+- [x] Image Fixed Hash as ID - on Redis
+- [x] Caching Redis
 - [ ] Option to disable subpath
 - [x] File Mapping with ID
 - [x] Edit redis.configs to implement LRU

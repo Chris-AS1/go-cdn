@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/database"
+	"go-cdn/utils"
 	"io"
 	"net/http"
 
@@ -18,68 +19,61 @@ type GinState struct {
 	Sugar       *zap.SugaredLogger
 }
 
-func SpawnGin(state *GinState, available_files *map[string]int) error {
+func SpawnGin(state *GinState) error {
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
 
-	// Debug endpoint to quickly check if a file is available
-	r.GET("/debug/:hash", getDebugFileHandler(available_files))
-
-	r.GET("/content/:hash", getFileHandler(state, available_files))
+	r.GET("/content/:hash", getFileHandler(state))
 	if state.Config.HTTPServer.AllowInsertion {
-		r.POST("/content/", postFileHandler(state, available_files))
+		r.POST("/content/", postFileHandler(state))
+	}
+
+	if state.Config.HTTPServer.AllowDeletion {
+		r.DELETE("/content/:hash", deleteFileHandler(state))
 	}
 
 	err := r.Run(fmt.Sprintf("0.0.0.0:%d", state.Config.HTTPServer.DeliveryPort))
 	return err
 }
 
-func getFileHandler(state *GinState, available_files *map[string]int) gin.HandlerFunc {
+// Returns the file, trying first from Redis and then from Postgres
+func getFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hash := c.Param("hash")
-		_, ok := (*available_files)[hash]
-		if ok {
-			// 1. Check if in Redis
-			if state.RedisClient != nil {
-				bytes, err := state.RedisClient.GetFromCache(hash)
-				if err != nil {
-					state.Sugar.Errorf("error while retrieving from Redis: %s", err)
-					c.String(http.StatusBadRequest, "")
-					return
-				}
-				if bytes != nil {
-					c.Data(http.StatusOK, "image", bytes)
-					return
-				}
+		// 1. Check if in Redis
+		if state.Config.Redis.RedisEnable {
+			bytes, err := state.RedisClient.GetFromCache(hash)
+			if err != nil {
+				// Cache miss, the request is still good
+				state.Sugar.Errorf("error while retrieving from Redis: %s", err)
 			}
-			// 2. Check if in Postgres
-		} else {
-            state.PgClient.GetFile(hash)
-			c.String(http.StatusOK, "BOOO")
+			if bytes != nil {
+				c.Data(http.StatusOK, "image", bytes)
+				return
+			}
 		}
+
+		// 2. Get from Postgres
+		stored_file, err := state.PgClient.GetFile(hash)
+		if err != nil {
+			state.Sugar.Errorf("error while retrieving from Postgres: %s", err)
+			c.String(http.StatusBadRequest, "")
+			return
+		}
+		c.Data(http.StatusOK, "image", stored_file.Content)
 	}
 }
 
-func getDebugFileHandler(available_files *map[string]int) gin.HandlerFunc {
+// POST with file, filename
+func postFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, ok := (*available_files)[c.Param("hash")]
-		if ok {
-			c.String(http.StatusOK, "OK")
-		} else {
-			c.String(http.StatusOK, "BOOO")
-		}
-	}
-}
-
-func postFileHandler(state *GinState, available_files *map[string]int) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		hash := c.PostForm("hash")
-		_, ok := (*available_files)[hash]
-		if ok {
+		hash := utils.RandStringBytes(6)
+		_, err := state.PgClient.GetFile(hash)
+		if err != nil {
 			state.Sugar.Errorf("hash already set")
-			c.String(http.StatusForbidden, "Invalid Parameters")
+			c.String(http.StatusForbidden, "Invalid HashName")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")
@@ -106,13 +100,7 @@ func postFileHandler(state *GinState, available_files *map[string]int) gin.Handl
 
 			state.Sugar.Infow("adding an image",
 				"filename", filename,
-				"bytes", string(bytes), "err", err)
-
-			if err != nil {
-				state.Sugar.Errorf("got an error while uploading: %s", err)
-				c.String(http.StatusBadRequest, "")
-				return
-			}
+				"bytes", string(bytes)[:10], "err", err)
 
 			err = state.PgClient.AddFile(hash, filename, bytes)
 			if err != nil {
@@ -121,14 +109,30 @@ func postFileHandler(state *GinState, available_files *map[string]int) gin.Handl
 				return
 			}
 
-			available_files, err = state.PgClient.GetFileList()
-			if err != nil {
-				state.Sugar.Errorf("got an error refreshing current files: %s", err)
-				c.String(http.StatusBadRequest, "")
-				return
-			}
-
-			c.String(http.StatusOK, "OK")
+			c.JSON(http.StatusOK, gin.H{
+				"hash": hash,
+			})
 		}
+	}
+}
+
+// Doesn't return an HTTP error by design
+func deleteFileHandler(state *GinState) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		hash := c.Param("hash")
+		state.Sugar.Infof("removing %s image", hash)
+		if state.Config.Redis.RedisEnable {
+			_, err := state.RedisClient.RemoveFromCache(hash)
+			if err != nil {
+				state.Sugar.Errorf("error while removing from Redis: %s", err)
+			}
+		}
+
+		err := state.PgClient.RemoveFile(hash)
+		if err != nil {
+			state.Sugar.Errorf("error while removing from Postgres: %s", err)
+		}
+
+		c.String(http.StatusOK, "OK")
 	}
 }

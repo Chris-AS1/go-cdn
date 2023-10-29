@@ -2,13 +2,11 @@ package database
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/consul"
+	"go-cdn/utils"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 
@@ -24,7 +22,7 @@ func NewRedisClient(csl *consul.ConsulClient, cfg *config.Config) (*RedisClient,
 	rc := &RedisClient{
 		ctx: context.Background(),
 	}
-	_, err := rc.connect(csl, cfg)
+	err := rc.connect(csl, cfg)
 	return rc, err
 }
 
@@ -33,13 +31,16 @@ func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config
 	var address string
 	var port int
 	if cfg.Consul.ConsulEnable {
-		// Discovers postgres from Consul
+		// Discovers Redis from Consul
 		address, port, err = csl.DiscoverService(cfg.Redis.RedisAddress)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		cfg_adr := strings.Split(cfg.DatabaseProvider.DatabaseAddress, ":")
+		cfg_adr := strings.Split(cfg.Redis.RedisAddress, ":")
+		if len(cfg_adr) != 2 {
+			return "", fmt.Errorf("wrong address format")
+		}
 		address = cfg_adr[0]
 		port, _ = strconv.Atoi(cfg_adr[1])
 	}
@@ -50,8 +51,11 @@ func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config
 }
 
 func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) error {
-	log.Print("Connecting to Redis")
 	address, err := rc.GetConnectionString(csl, cfg)
+	if err != nil {
+		return err
+	}
+
 	rc.rdb = redis.NewClient(&redis.Options{
 		Addr:     address,
 		Password: cfg.Redis.RedisPassword,
@@ -62,24 +66,28 @@ func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) err
 	return err
 }
 
-// Hashmap with the current available files, <hash: string>:<filename: string>
-func BuildFileMap() map[string]string {
-	files, err := os.ReadDir("")
-	// TODO Fix
-	// files, err := os.ReadDir(dataFolder)
-	var ret = make(map[string]string)
+func (rc *RedisClient) GetFromCache(id_hash string) ([]byte, error) {
+	result, err := rc.rdb.Get(rc.ctx, id_hash).Bytes()
 
-	if err != nil {
-		log.Fatal(err)
+	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
+	switch {
+	case err == redis.Nil:
+		return nil, utils.ErrorRedisKeyDoesNotExist
+	case err != nil:
+		return nil, err
 	}
 
-	for _, file := range files {
-		sum := sha256.Sum256([]byte(file.Name()))
-		sum2 := hex.EncodeToString(sum[:])
-		ret[sum2[:6]] = file.Name()
-	}
+	return result, nil
+}
 
-	return ret
+func (rc *RedisClient) AddToCache(id_hash string, content []byte) (string, error) {
+	result, err := rc.rdb.Set(rc.ctx, id_hash, content, 0).Result()
+	return result, err
+}
+
+func (rc *RedisClient) RemoveFromCache(id_hash string) (int64, error) {
+	result, err := rc.rdb.Del(rc.ctx, id_hash).Result()
+	return result, err
 }
 
 // Records image access on Redis - Most used cache
@@ -90,40 +98,4 @@ func (rc *RedisClient) RecordAccess(file_id string) int64 {
 	}
 
 	return int64(result)
-}
-
-func (rc *RedisClient) GetFromCache(id_hash string) ([]byte, error) {
-	result, err := rc.rdb.Get(rc.ctx, id_hash).Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// Every X amount, check that DB 0 (HitN: Filenames) and DB 1 (Filenames: Bytes) are in sync
-func (rc *RedisClient) RefreshCache() bool {
-	// Get latest 3 scores
-	// TODO Check if they're max
-	result, err := rc.rdb.ZRangeWithScores(rc.ctx, "zset1", -3, -1).Result()
-	if err != nil {
-		log.Fatalf("Redis Cache Error %#v", err)
-		return false
-	}
-
-	// For most hitted images
-	for _, z := range result {
-		_ = z
-		// Hashed ID
-		// image_id := z.Member.(string)
-
-		// Check that's not in Cache
-		// result2, err := r.ZScan(ctx, "zset1", 0, "", 1).Result()
-
-		// buff, err := os.ReadFile(getImagePath(fileMap[filename]))
-
-	}
-
-	log.Printf("Refreshed Redis File Cache: %#v", result)
-	return false
 }

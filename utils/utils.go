@@ -1,7 +1,9 @@
 package utils
 
-import "math/rand"
-
+import (
+	"errors"
+	"math/rand"
+)
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -13,4 +15,4 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-
+var ErrorRedisKeyDoesNotExist = errors.New("key does not exist")

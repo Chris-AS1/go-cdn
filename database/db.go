@@ -19,6 +19,12 @@ type PostgresClient struct {
 	client *sql.DB
 }
 
+type StoredFile struct {
+	IDHash  string
+	Filename string
+	Content  []byte
+}
+
 func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
 	pg_client := &PostgresClient{}
 	connStr, err := pg_client.GetConnectionString(csl, cfg)
@@ -49,13 +55,16 @@ func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *con
 	var port int
 
 	if cfg.Consul.ConsulEnable {
-		// Discovers postgres from Consul
+		// Discovers Postgres from Consul
 		address, port, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
 		if err != nil {
 			return "", err
 		}
 	} else {
 		cfg_adr := strings.Split(cfg.DatabaseProvider.DatabaseAddress, ":")
+		if len(cfg_adr) != 2 {
+			return "", fmt.Errorf("wrong address format")
+		}
 		address = cfg_adr[0]
 		port, _ = strconv.Atoi(cfg_adr[1])
 	}
@@ -109,64 +118,31 @@ func (pg *PostgresClient) AddFile(id_hash string, filename string, content []byt
 	return err
 }
 
-// Removes the file from teh database, if present
+// Removes the file from the database, if present
 func (pg *PostgresClient) RemoveFile(id_hash string) error {
 	con := pg.client
 	_, err := con.Exec(`DELETE FROM fs_entities WHERE id_hash=$1`, id_hash)
 	return err
 }
 
-// Queries the files saved on the database
-func (pg *PostgresClient) GetFileList() (*map[string]int, error) {
-	// Variable Replacement of a table name not supported
-	// rows, err := con.Query(fmt.Sprintf("SELECT * FROM %s", utils.EnvSettings.DatabaseTableName))
-	// str := fmt.Sprintf("SELECT %s, %s FROM %s", cfg.DatabaseProvider.DatabaseColumnID, cfg.DatabaseProvider.DatabaseColumnFilename, cfg.DatabaseProvider.DatabaseName)
-
-	// BUG - To check again
-	// rows, err := con.Query(str, utils.EnvSettings.DatabaseIDColumn, utils.EnvSettings.DatabaseFilenameColumn)
-
-	con := pg.client
-
-	rows, err := con.Query(fmt.Sprintf("SELECT id, id_hash, filename FROM %s", "fs_entities"))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	available_files := make(map[string]int)
-
-	for rows.Next() {
-		var id int
-		var id_hash string
-		var filename string
-		if err := rows.Scan(&id, &id_hash, &filename); err != nil {
-			return nil, err
-		}
-		available_files[string(id_hash)] = id
-	}
-
-	return &available_files, nil
-}
-
 // Queries the specified file saved on the database
-// TODO Return a structure representing the file
-func (pg *PostgresClient) GetFile(id_hash string) ([]byte, error) {
+func (pg *PostgresClient) GetFile(id_hash_search string) (*StoredFile, error) {
 	con := pg.client
-	rows, err := con.Query(fmt.Sprintf("SELECT id, id_hash, filename, content FROM %s WHERE id_hash=%s", "fs_entities", id_hash))
+	rows, err := con.Query("SELECT id, id_hash, filename, content FROM fs_entities WHERE id_hash=$1", id_hash_search)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	var id int
+	var id_hash string
+	var filename string
 	var content []byte
 	for rows.Next() {
-		var id int
-		var id_hash string
-		var filename string
 		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil {
 			return nil, err
 		}
 	}
 
-	return content, err
+	return &StoredFile{id_hash, filename, content}, err
 }

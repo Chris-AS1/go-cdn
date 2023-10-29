@@ -63,13 +63,6 @@ func main() {
 	}
 	defer pg_client.CloseConnection()
 
-	// Image list to be used on endpoints
-	available_files, err := pg_client.GetFileList()
-	sugar.Infow("available files", available_files)
-	if err != nil {
-		sugar.Panicf("Error retrieving current files: %s", err)
-	}
-
 	// Handle Redis Connection
 	var rd_client *database.RedisClient
 	if cfg.Redis.RedisEnable {
@@ -89,79 +82,7 @@ func main() {
 		Sugar:       sugar,
 	}
 
-	if err = server.SpawnGin(gin_state, available_files); err != nil {
+	if err = server.SpawnGin(gin_state); err != nil {
 		sugar.Panicf("Gin returned an error: %s", err)
 	}
 }
-
-/* func main() {
-	utils.LoadEnv()
-	fileMap = database.BuildFileMap()
-
-	log.Printf("Redis connection: %s", database.ConnectRedis())
-	log.Print("Starting Server")
-
-	// go refreshClock()
-
-	r := mux.NewRouter().StrictSlash(true)
-
-	// Disabled
-	r.HandleFunc("/", RootHandler)
-
-	// Serving Image Path
-	b, err := strconv.ParseBool(utils.EnvSettings.DeliveringSubPathEnable)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	if b {
-		log.Printf("Serving Path: /%s/{id}/", utils.EnvSettings.DeliveringSubPath)
-
-		url, url_id := fmt.Sprintf("/%s", utils.EnvSettings.DeliveringSubPath),
-			fmt.Sprintf("/%s/{id}", utils.EnvSettings.DeliveringSubPath)
-
-		r.HandleFunc(url, GetImageHandler).Methods("GET")
-		r.HandleFunc(url_id, GetImageHandler).Methods("GET")
-
-		// Check if insertion endpoint is enabled
-		add, err := strconv.ParseBool(utils.EnvSettings.EnableInsertion)
-		if add {
-			r.HandleFunc(url, PostImageHandler).Methods("POST")
-		}
-
-		if err != nil {
-			log.Panic(err)
-		}
-
-		// Check if deletion endpoint is enabled
-		del, err := strconv.ParseBool(utils.EnvSettings.EnableDeletion)
-
-		if del {
-			r.HandleFunc(url_id, DeleteImageHandler).Methods("DELETE")
-		}
-
-		if err != nil {
-			log.Panic(err)
-		}
-	} else {
-		log.Print("Serving Path: /{id}/")
-		r.HandleFunc("/", GetImageHandler).Methods("GET")
-		r.HandleFunc("/{id:[0-9]+}", GetImageHandler).Methods("GET")
-	}
-
-	// Serve List Path
-	r.HandleFunc("/list/", GetListHandler)
-
-	// Use Router
-	http.Handle("/", r)
-
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         fmt.Sprintf(":%s", utils.EnvSettings.DeliveringPort),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
-	log.Printf("Serving Port: %s", utils.EnvSettings.DeliveringPort)
-	log.Fatal(srv.ListenAndServe())
-} */
