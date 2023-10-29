@@ -1,6 +1,7 @@
 consul:
   enable: true
   service_name: ""
+  service_address: "auto" 
   address: ""
   datacenter: "dc1"
   port: 8500

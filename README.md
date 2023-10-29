@@ -8,7 +8,8 @@ Microservice that serves image BLOBs from PostgreSQL via a REST API, using Redis
 ```yaml
 consul:
   enable: 
-  service_name: # Service under which the microservices will be registered. Each one will have an unique id.
+  service_name:    # Service under which the microservices will be registered. Each one will have an unique id.
+  service_address: # Either auto or manually set. auto finds the first non-loopback address.
   address: 
   datacenter: 
   port: 

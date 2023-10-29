@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"go-cdn/utils"
+	"strings"
 
 	capi "github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
@@ -16,12 +17,13 @@ type Config struct {
 }
 
 type Consul struct {
-	ConsulEnable      bool   `mapstructure:"enable"`
-	ConsulServiceID   string `mapstructure:"service_id"` // Should not be present in configs.yaml. It's randomized for each instance
-	ConsulServiceName string `mapstructure:"service_name"`
-	ConsulAddress     string `mapstructure:"address"`
-	ConsulDatacenter  string `mapstructure:"datacenter"`
-	ConsulPort        int    `mapstructure:"port"`
+	ConsulEnable         bool   `mapstructure:"enable"`
+	ConsulServiceID      string `mapstructure:"service_id"` // Should not be present in configs.yaml. It's randomized for each instance
+	ConsulServiceName    string `mapstructure:"service_name"`
+	ConsulServiceAddress string `mapstructure:"service_address"`
+	ConsulAddress        string `mapstructure:"address"`
+	ConsulDatacenter     string `mapstructure:"datacenter"`
+	ConsulPort           int    `mapstructure:"port"`
 }
 
 type RedisDatabase struct {
@@ -60,6 +62,10 @@ func NewConfig() (Config, error) {
 	}
 
 	err := cfg.loadFromFile()
+	if cfg.Consul.ConsulServiceAddress == "auto" {
+		cfg.Consul.ConsulServiceAddress = utils.GetLocalIPv4()
+	}
+
 	return cfg, err
 }
 
@@ -68,9 +74,9 @@ func (cfg *Config) loadFromFile() error {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
-	viper.AddConfigPath("../config/") // To remove eventually
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("APP")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvPrefix("APP") // Allow override from environemnt via APP_VAR_NAME
 
 	if err := viper.ReadInConfig(); err != nil {
 		return err
@@ -81,18 +87,17 @@ func (cfg *Config) loadFromFile() error {
 }
 
 func (cfg *Config) GetServiceDefinition() capi.AgentServiceRegistration {
-	this_addr := utils.GetLocalIPv4() // Find the local address if deployed in docker
 	csl := cfg.Consul
 	return capi.AgentServiceRegistration{
 		ID:      csl.ConsulServiceID,
 		Name:    csl.ConsulServiceName,
-		Address: this_addr,
+		Address: csl.ConsulServiceAddress,
 		Port:    cfg.HTTPServer.DeliveryPort,
 		Check: &capi.AgentServiceCheck{
 			Name:                           "web_alive",
 			Interval:                       "10s",
 			Timeout:                        "30s",
-			HTTP:                           fmt.Sprintf("http://%s:%d/health", this_addr, cfg.HTTPServer.DeliveryPort),
+			HTTP:                           fmt.Sprintf("http://%s:%d/health", csl.ConsulServiceAddress, cfg.HTTPServer.DeliveryPort),
 			DeregisterCriticalServiceAfter: "1m",
 		},
 	}
