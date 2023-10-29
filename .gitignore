@@ -3,7 +3,6 @@
 *.jpg
 *.test
 go.sum
-docker-compose.yml
 config.yaml
 go-cdn
 

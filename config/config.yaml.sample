@@ -2,7 +2,7 @@ consul:
   enable: true
   service_name: ""
   address: ""
-  datacenter: ""
+  datacenter: "dc1"
   port: 8500
 
 redis:
@@ -13,7 +13,7 @@ redis:
 
 postgres:
   host: "" 
-  database: ""
+  database: "go_fs"
   username: ""
   password: ""
   ssl: false
