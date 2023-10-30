@@ -29,6 +29,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  haproxy:
+    image: haproxy:latest
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "80:80"
+      - "1936:1936" # haproxy stats
+
   consul:
     image: hashicorp/consul:latest
     volumes:
