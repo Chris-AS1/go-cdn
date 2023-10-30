@@ -1,5 +1,5 @@
 # Go-CDN
-Microservice that serves image BLOBs from PostgreSQL via a REST API, using Redis as cache (LFU), Consul for Service Discovery and HAProxy as Load Balancer (soontm).
+Microservice that serves image BLOBs from PostgreSQL via a REST API, using Redis as cache (LFU), Consul for Service Discovery and HAProxy as Load Balancer.
 
 ## Architecture
 ![architecture](./assets/architecture_sketch.png)
