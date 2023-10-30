@@ -3,7 +3,6 @@ package utils
 import (
 	"os"
 	"strings"
-
 	"github.com/joho/godotenv"
 )
 

@@ -1,90 +1,55 @@
-# Golang CDN
-Simple CDN made in Golang which aims to distribute files from a simple and easily deployable environment.
+# Go-CDN
+Microservice that serves image BLOBs from PostgreSQL via a REST API, using Redis as cache (LFU), Consul for Service Discovery and HAProxy as Load Balancer (soontm).
 
-# Parameters
-| VAR | Description |
-|---|---|
-| `CDN_PORT=3333` | Port used by CDN |  
-| `CDN_SUBPATH=/image/` | Subpath on which the resources will be served |  
-| `CDN_SUBPATH_ENABLE=true\|false` | Select if CDN should serve under a subpath, NOT RECOMMENDED |  
-| `CDN_ENABLE_DELETE=true\|false` | Select if the DELETE endpoints are enabled |  
-| `CDN_ENABLE_INSERTION=true\|false` | Select if the POST endpoints are enabled |  
-| `DB_USERNAME=`| Auth Username for PostgreSQL |  
-| `DB_PASSWORD=` | Auth Password for PostgreSQL |  
-| `DB_PORT=` | Port for PostgreSQL |  
-| `DB_URL=` | Database URL for PostgreSQL |  
-| `DB_NAME=` | Database Name for PostgreSQL |  
-| `DB_COL_ID=` | Table Column containing IDs |  
-| `DB_COL_FN=` | Table Column containing Image File Name |  
-| `DB_SSL=enable\|disable` | SSL Options for PostgreSQL |  
-| `REDIS_ENABLE=false` | Select if Redis Caching should be enabled |  
-| `REDIS_URL=redis:6379` | Redis Connection URL (IP:Port) |  
+## Architecture
+![architecture](./assets/architecture_sketch.png)
 
+# Configuration Sample (config.yaml)
+```yaml
+consul:
+  enable: 
+  service_name:    # Service under which the microservices will be registered. Each one will have an unique id.
+  service_address: # Either auto or manually set. auto finds the first non-loopback address.
+  address: 
+  datacenter: 
+  port: 
+
+redis:
+  enable: 
+  host:         # If Consul is enabled then this is the service name, otherwise ip:port
+  password: 
+  db: 
+
+postgres:
+  host:         # If Consul is enabled then this is the service name, otherwise ip:port
+  database: 
+  username:
+  password: 
+  ssl: 
+
+http:
+  allow_insert: 
+  allow_delete:
+```
 
 # Docker Deployment
-## Building the image
+## Build the image
 ```bash
-docker build -t golang/cdn .
+docker build -t local/go-fileserver .
 ```
 
-## Running it
+## Docker Compose
+Check the provided `docker-compose.yml` for a deployment example. The provided stack contains an example Consul container for demo purposes.
 ```bash
-docker run -p 8080:3333 -v "$(pwd)/resources":/config/resources:ro -e CDN_SUBPATH=/v1/ golang/cdn:latest
-```
-This will run the CDN with the following specifics:
-- Accessible at http://IP:8080/v1/image
-- Local `resources` folder mapped to the internal directory in Read Only (Note that it shall be changed for the DELETE endpoint to work). You should always map the folder containing images to `/config/resources` on the container's path
-
-
-## Compose
-Alternatively, using the following `docker-compose.yml` file:
-```docker
-version: '3.3'
-services:
-    go-cdn:
-        image: 'golang/cdn:latest'
-        ports:
-            - '8080:3333'
-        volumes:
-            - PATH/resources:/config/resources:ro
-        environment:
-            - CDN_SUBPATH=/v1/
-```
-
-And with Redis Caching:
-```docker
-version: '3.3'
-services:
-    go-cdn:
-        build: .
-        ports:
-            - "8080:3333"
-        volumes:
-            - PATH/resources:/config/resources:ro
-        environment:
-            - CDN_SUBPATH=/v1/
-            - REDIS_ENABLE=true
-        depends_on:
-            - "redis"
-    redis:
-        image: "redis:7-alpine"
-```
-Then to deploy:
-```bash
+docker compose build 
 docker compose up -d
+docker compose logs -f
 ```
 
----
-
-## Todo
-- [x] Insert, Remove Images
-- [x] Image Fixed Hash as ID - on Redis
-- [x] Caching Redis
-- [x] Option to disable subpath
-- [x] File Mapping with ID
-- [x] Edit redis.configs to implement LRU
-- [ ] Authentication
-- [ ] Geo Restriction
-- [ ] Resize feature via URL parameters
-- [ ] Add distributed support
-- [ ] Try out Couchbase (?)
+# Testing
+Due the nature of Go, tests are ran inside their respective packages. This creates confusion with the relative paths regarding configs and migrations.
+To get around this limitation it's possible to compile each test individually, and then run it from the root of the folder:
+```bash
+go test -c ./...
+./{PACKAGE}.test 
+```

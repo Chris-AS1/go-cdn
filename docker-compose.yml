@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  go-fs:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - "./config/config-docker.yaml:/cdn/config.yaml:ro"
+    depends_on:
+      - "consul"
+      - "redis"
+      - "postgres"
+
+  redis:
+    image: "redis:7-alpine"
+    volumes:
+      - "./config/redis.conf:/redis.conf"
+    command: "redis-server /redis.conf"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpassword
+      POSTGRES_DB: go_fs
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  consul:
+    image: hashicorp/consul:latest
+    volumes:
+     - ./config/consul.json:/consul/config/server.json
+     - ./config/postgres.json.sample:/consul/config/postgres.json
+     - ./config/redis.json.sample:/consul/config/redis.json
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -bootstrap-expect=1"
+
+volumes:
+  pgdata:

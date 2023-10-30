@@ -1,0 +1,24 @@
+consul:
+  enable: true
+  service_name: ""
+  service_address: "auto" 
+  address: ""
+  datacenter: "dc1"
+  port: 8500
+
+redis:
+  enable: true
+  host: "" 
+  password: ""
+  db: 1
+
+postgres:
+  host: "" 
+  database: "go_fs"
+  username: ""
+  password: ""
+  ssl: false
+
+http:
+  allow_insert: true
+  allow_delete: true
