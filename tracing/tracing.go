@@ -23,8 +23,8 @@ const (
 	instrumentationVersion = "0.1.0"
 )
 
-// Retrieves the global tracer Provider
-var tracer = otel.GetTracerProvider().Tracer(
+// Retrieves the global Tracer Provider
+var Tracer = otel.GetTracerProvider().Tracer(
 	instrumentationName,
 	trace.WithInstrumentationVersion(instrumentationVersion),
 	trace.WithSchemaURL(semconv.SchemaURL),
@@ -32,7 +32,7 @@ var tracer = otel.GetTracerProvider().Tracer(
 
 func add(ctx context.Context, x, y int64) int64 {
 	var span trace.Span
-	_, span = tracer.Start(ctx, "Addition")
+	_, span = Tracer.Start(ctx, "Addition")
 	defer span.End()
 
 	/* span.AddEvent("custom logged event")
@@ -43,7 +43,7 @@ func add(ctx context.Context, x, y int64) int64 {
 
 func multiply(ctx context.Context, x, y int64) int64 {
 	var span trace.Span
-	_, span = tracer.Start(ctx, "Multiplication")
+	_, span = Tracer.Start(ctx, "Multiplication")
 	defer span.End()
 
 	return x * y
@@ -57,10 +57,10 @@ func newResource() *resource.Resource {
 	)
 }
 
-func installExportPipeline(ctx context.Context) (func(context.Context) error, error) {
+func InstallExportPipeline(ctx context.Context) (func(context.Context) error, error) {
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithInsecure(),
-		otlptracehttp.WithEndpoint("localhost:4318"))
+		otlptracehttp.WithEndpoint("localhost:4318")) // TODO test if this gets overwritten
 
 	if err != nil {
 		return nil, fmt.Errorf("creating OTLP trace exporter: %w", err)
@@ -78,7 +78,7 @@ func installExportPipeline(ctx context.Context) (func(context.Context) error, er
 
 func Example() {
 	ctx := context.Background()
-	shutdown, err := installExportPipeline(ctx)
+	shutdown, err := InstallExportPipeline(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

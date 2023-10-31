@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"go-cdn/config"
 	"go-cdn/consul"
 	"go-cdn/database"
 	"go-cdn/server"
+	"go-cdn/tracing"
 
 	"go.uber.org/zap"
 )
@@ -15,6 +17,21 @@ func main() {
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
 	sugar := logger.Sugar()
+
+	// Jaeger/OTEL
+	trace_ctx := context.Background()
+	shutdown, err := tracing.InstallExportPipeline(trace_ctx)
+	if err != nil {
+		sugar.Panic(err)
+	}
+	defer func() {
+		if err := shutdown(trace_ctx); err != nil {
+			sugar.Panic(err)
+		}
+	}()
+    // Main span trace
+	_, span := tracing.Tracer.Start(trace_ctx, "main")
+    defer span.End()
 
 	// Yaml Configurations
 	cfg, err := config.NewConfig()
