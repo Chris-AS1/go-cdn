@@ -11,6 +11,7 @@ services:
       - "consul"
       - "redis"
       - "postgres"
+      - "jaeger"
 
   redis:
     image: "redis:7-alpine"
@@ -49,7 +50,7 @@ services:
       - "8600:8600/udp"
     command: "agent -bootstrap-expect=1"
 
-  jaeger-all-in-one:
+  jaeger:
     image: jaegertracing/all-in-one:1.50
     ports:
       - "6831:6831/udp"
