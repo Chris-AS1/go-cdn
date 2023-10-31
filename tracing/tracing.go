@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"log"
+	"go-cdn/config"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -30,25 +30,6 @@ var Tracer = otel.GetTracerProvider().Tracer(
 	trace.WithSchemaURL(semconv.SchemaURL),
 )
 
-func add(ctx context.Context, x, y int64) int64 {
-	var span trace.Span
-	_, span = Tracer.Start(ctx, "Addition")
-	defer span.End()
-
-	/* span.AddEvent("custom logged event")
-	span.SetAttributes(attribute.String("custom attribute", "val")) */
-
-	return x + y
-}
-
-func multiply(ctx context.Context, x, y int64) int64 {
-	var span trace.Span
-	_, span = Tracer.Start(ctx, "Multiplication")
-	defer span.End()
-
-	return x * y
-}
-
 func newResource() *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -57,10 +38,10 @@ func newResource() *resource.Resource {
 	)
 }
 
-func InstallExportPipeline(ctx context.Context) (func(context.Context) error, error) {
+func InstallExportPipeline(ctx context.Context, cfg *config.Config) (func(context.Context) error, error) {
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithInsecure(),
-		otlptracehttp.WithEndpoint("localhost:4318")) // TODO test if this gets overwritten
+		otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", cfg.Telemetry.JaegerAddress, cfg.Telemetry.JaegerPort)))
 
 	if err != nil {
 		return nil, fmt.Errorf("creating OTLP trace exporter: %w", err)
@@ -74,19 +55,4 @@ func InstallExportPipeline(ctx context.Context) (func(context.Context) error, er
 	// Registers a tracer Provider globally.
 	otel.SetTracerProvider(tracerProvider)
 	return tracerProvider.Shutdown, nil
-}
-
-func Example() {
-	ctx := context.Background()
-	shutdown, err := InstallExportPipeline(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := shutdown(ctx); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	log.Println("the answer is", add(ctx, multiply(ctx, multiply(ctx, 2, 2), 10), 2))
 }

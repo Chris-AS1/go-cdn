@@ -30,6 +30,9 @@ postgres:
 http:
   allow_insert: 
   allow_delete:
+
+telemetry:
+  jaeger_address:
 ```
 
 # Docker Deployment

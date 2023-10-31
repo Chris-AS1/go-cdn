@@ -14,6 +14,7 @@ type Config struct {
 	Redis            RedisDatabase    `mapstructure:"redis"`
 	DatabaseProvider DatabaseProvider `mapstructure:"postgres"`
 	HTTPServer       HTTPServer       `mapstructure:"http"`
+	Telemetry        Telemetry        `mapstructure:"telemetry"`
 }
 
 type Consul struct {
@@ -50,6 +51,11 @@ type HTTPServer struct {
 	AllowInsertion bool   `mapstructure:"allow_insert"`
 }
 
+type Telemetry struct {
+	JaegerAddress string `mapstructure:"jaeger_address"`
+	JaegerPort    int    `mapstructure:"jaeger_port"`
+}
+
 func NewConfig() (Config, error) {
 	consul_service_id := utils.RandStringBytes(4)
 	cfg := Config{
@@ -59,6 +65,7 @@ func NewConfig() (Config, error) {
 		RedisDatabase{RedisEnable: false},
 		DatabaseProvider{DatabaseSSL: false},
 		HTTPServer{DeliveryPort: 3000},
+		Telemetry{JaegerPort: 4318},
 	}
 
 	err := cfg.loadFromFile()

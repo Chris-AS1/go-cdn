@@ -18,9 +18,14 @@ func main() {
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
+	// Yaml Configurations
+	cfg, err := config.NewConfig()
+	dbg, _ := json.Marshal(cfg)
+	sugar.Info("Loaded following configs:", string(dbg))
+
 	// Jaeger/OTEL
 	trace_ctx := context.Background()
-	shutdown, err := tracing.InstallExportPipeline(trace_ctx)
+	shutdown, err := tracing.InstallExportPipeline(trace_ctx, &cfg)
 	if err != nil {
 		sugar.Panic(err)
 	}
@@ -29,14 +34,9 @@ func main() {
 			sugar.Panic(err)
 		}
 	}()
-    // Main span trace
+	// Main span trace
 	_, span := tracing.Tracer.Start(trace_ctx, "main")
-    defer span.End()
-
-	// Yaml Configurations
-	cfg, err := config.NewConfig()
-	dbg, _ := json.Marshal(cfg)
-	sugar.Info("Loaded following configs:", string(dbg))
+	defer span.End()
 
 	// Handle Consul Connection/Registration
 	if err != nil {
