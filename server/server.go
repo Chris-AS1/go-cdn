@@ -47,7 +47,7 @@ func requestMetadataMiddleware() gin.HandlerFunc {
 }
 func errorPropagatorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-        span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
+		span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
 		c.Next()
 
 		// _, span := tracing.Tracer.Start(c.Request.Context(), "errorPropagatorMiddleware") // Use this to attach to a dedicated span
@@ -117,7 +117,7 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 			// Cache miss, the request is still good
 			if err != nil {
 				state.Sugar.Errorf("error while retrieving from Redis: %s", err)
-				err_ch <- err
+				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
 				c.Data(http.StatusOK, "image", bytes)
