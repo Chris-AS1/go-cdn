@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// TODO test env. variable OTEL_EXPORTER_OTLP_ENDPOINT
 // https://opentelemetry.io/docs/instrumentation/go/manual/
 // https://github.com/open-telemetry/opentelemetry-go/blob/main/exporters/otlp/otlptrace/otlptracehttp/example_test.go
 // https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector
