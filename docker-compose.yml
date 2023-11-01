@@ -7,6 +7,9 @@ services:
       - "3000:3000"
     volumes:
       - "./config/config-docker.yaml:/cdn/config.yaml:ro"
+    # environment: # Override Example
+    #   - "APP_TELEMETRY_JAEGER_ADDRESS="
+    #   - "APP_TELEMETRY_JAEGER_PORT="
     depends_on:
       - "consul"
       - "redis"

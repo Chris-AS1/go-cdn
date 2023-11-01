@@ -10,6 +10,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v9"
 	"go.opentelemetry.io/otel/attribute"
@@ -59,9 +60,11 @@ func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) err
 	}
 
 	rc.rdb = redis.NewClient(&redis.Options{
-		Addr:     address,
-		Password: cfg.Redis.RedisPassword,
-		DB:       cfg.Redis.RedisDB,
+		Addr:         address,
+		Password:     cfg.Redis.RedisPassword,
+		DB:           cfg.Redis.RedisDB,
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 2 * time.Second,
 	})
 
 	_, err = rc.rdb.Ping(rc.ctx).Result()
