@@ -26,21 +26,22 @@ type GinState struct {
 	Sugar       *zap.SugaredLogger
 }
 
-var wg = sync.WaitGroup{}
-
-func requestIDMiddleware() gin.HandlerFunc {
+func requestMetadataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err_ch := make(chan error)
+		err_ch := make(chan error, 1)
 		c.Set("err_ch", err_ch)
+
+		wg := sync.WaitGroup{}
+		c.Set("wg", &wg)
 
 		req_id, _ := uuid.NewRandom()
 		c.Set("request.id", req_id.String())
 
-		_, span := tracing.Tracer.Start(c.Request.Context(), "requestIDMiddleware",
-			trace.WithAttributes(attribute.String("request.id", req_id.String())),
+		_, span := tracing.Tracer.Start(c.Request.Context(), "requestMetadataMiddleware",
 			trace.WithAttributes(attribute.String("request.method", c.Request.Method)),
 		)
-        span.End() // defer would make the middleware span terminate at the end of the request
+
+		span.End() // defer would make the middleware span terminate at the end of the request
 		c.Next()
 	}
 }
@@ -52,6 +53,8 @@ func errorPropagatorMiddleware() gin.HandlerFunc {
 		defer span.End()
 
 		err_ch := c.MustGet("err_ch").(chan error)
+		wg := c.MustGet("wg").(*sync.WaitGroup)
+
 		go func() {
 			wg.Wait()
 			close(err_ch)
@@ -71,7 +74,7 @@ func SpawnGin(state *GinState) error {
 	r := gin.Default()
 
 	r.Use(otelgin.Middleware("gin-server"))
-	r.Use(requestIDMiddleware())
+	r.Use(requestMetadataMiddleware())
 	r.Use(errorPropagatorMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
@@ -79,6 +82,7 @@ func SpawnGin(state *GinState) error {
 	})
 
 	r.GET("/content/:hash", getFileHandler(state))
+
 	if state.Config.HTTPServer.AllowInsertion {
 		r.POST("/content/", postFileHandler(state))
 	}
@@ -97,15 +101,21 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
 		defer span.End()
 
+		// Setup error propagation
+		err_ch := c.MustGet("err_ch").(chan error)
+		wg := c.MustGet("wg").(*sync.WaitGroup)
+
+		// Param
 		hash := c.Param("hash")
 
 		// Check if in Redis
 		if state.Config.Redis.RedisEnable {
-			// TODO Handle connectivity issues scenarios
 			bytes, err := state.RedisClient.GetFromCache(c.Request.Context(), hash)
+
+			// Cache miss, the request is still good
 			if err != nil {
-				// Cache miss, the request is still good
 				state.Sugar.Errorf("error while retrieving from Redis: %s", err)
+				err_ch <- err
 			}
 			if bytes != nil {
 				c.Data(http.StatusOK, "image", bytes)
@@ -122,41 +132,18 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		}
 
 		// Asynchronously add to Redis cache
-		/* var wg sync.WaitGroup
-		err_ch := make(chan error) */
-		err_ch := c.MustGet("err_ch").(chan error)
 		if state.Config.Redis.RedisEnable {
 			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				err := state.RedisClient.AddToCache(c.Request.Context(), hash, stored_file.Content)
 				err_ch <- err
-				wg.Done()
 			}()
 		}
-
-		// Old code, error was set on current span
-		/* go func() {
-			wg.Wait()
-			close(err_ch)
-			// Can't put error propagation in here since it would end after the span_end
-		}()
-
-		// Will terminate when the channel gets closed
-		for err := range err_ch {
-			if err != nil {
-				// Adds error log
-				span.RecordError(err)
-				// Adds otel.status_code and otel.otel.status_description
-				span.SetStatus(codes.Error, err.Error())
-				c.String(http.StatusBadRequest, "")
-				return
-			}
-		} */
 
 		_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
 		c.Data(http.StatusOK, "image", stored_file.Content)
 		internal_span.End()
-
 	}
 }
 
@@ -222,6 +209,7 @@ func deleteFileHandler(state *GinState) gin.HandlerFunc {
 		hash := c.Param("hash")
 		state.Sugar.Infof("removing %s image", hash)
 		if state.Config.Redis.RedisEnable {
+			// TODO make async
 			_, err := state.RedisClient.RemoveFromCache(c.Request.Context(), hash)
 			if err != nil {
 				state.Sugar.Errorf("error while removing from Redis: %s", err)
