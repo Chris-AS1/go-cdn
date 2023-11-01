@@ -38,7 +38,7 @@ func requestMetadataMiddleware() gin.HandlerFunc {
 		c.Set("request.id", req_id.String())
 
 		_, span := tracing.Tracer.Start(c.Request.Context(), "requestMetadataMiddleware",
-			trace.WithAttributes(attribute.String("request.method", c.Request.Method)),
+			trace.WithAttributes(attribute.String("request.id", req_id.String())),
 		)
 
 		span.End() // defer would make the middleware span terminate at the end of the request
@@ -47,9 +47,10 @@ func requestMetadataMiddleware() gin.HandlerFunc {
 }
 func errorPropagatorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+        span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
 		c.Next()
 
-		_, span := tracing.Tracer.Start(c.Request.Context(), "errorPropagatorMiddleware")
+		// _, span := tracing.Tracer.Start(c.Request.Context(), "errorPropagatorMiddleware") // Use this to attach to a dedicated span
 		defer span.End()
 
 		err_ch := c.MustGet("err_ch").(chan error)
@@ -98,7 +99,8 @@ func SpawnGin(state *GinState) error {
 // Returns the file, trying first from Redis and then from Postgres
 func getFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
+		c.Request = c.Request.WithContext(rq_ctx)
 		defer span.End()
 
 		// Setup error propagation
