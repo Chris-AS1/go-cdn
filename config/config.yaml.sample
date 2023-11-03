@@ -22,3 +22,6 @@ postgres:
 http:
   allow_insert: true
   allow_delete: true
+
+telemetry:
+  jaeger_address: "jaeger"

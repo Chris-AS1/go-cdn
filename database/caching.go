@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/consul"
+	"go-cdn/tracing"
 	"go-cdn/utils"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v9"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type RedisClient struct {
@@ -57,16 +60,22 @@ func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) err
 	}
 
 	rc.rdb = redis.NewClient(&redis.Options{
-		Addr:     address,
-		Password: cfg.Redis.RedisPassword,
-		DB:       cfg.Redis.RedisDB,
+		Addr:         address,
+		Password:     cfg.Redis.RedisPassword,
+		DB:           cfg.Redis.RedisDB,
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 2 * time.Second,
 	})
 
 	_, err = rc.rdb.Ping(rc.ctx).Result()
 	return err
 }
 
-func (rc *RedisClient) GetFromCache(id_hash string) ([]byte, error) {
+func (rc *RedisClient) GetFromCache(ctx context.Context, id_hash string) ([]byte, error) {
+	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
+	span.SetAttributes(attribute.String("rd.hash", id_hash))
+	defer span.End()
+
 	result, err := rc.rdb.Get(rc.ctx, id_hash).Bytes()
 
 	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
@@ -80,18 +89,27 @@ func (rc *RedisClient) GetFromCache(id_hash string) ([]byte, error) {
 	return result, nil
 }
 
-func (rc *RedisClient) AddToCache(id_hash string, content []byte) (string, error) {
-	result, err := rc.rdb.Set(rc.ctx, id_hash, content, 0).Result()
-	return result, err
+func (rc *RedisClient) AddToCache(ctx context.Context, id_hash string, content []byte) error {
+	_, span := tracing.Tracer.Start(ctx, "rdAddToCache")
+	span.SetAttributes(attribute.String("rd.hash", id_hash))
+	defer span.End()
+
+	_, err := rc.rdb.Set(rc.ctx, id_hash, content, 0).Result()
+	return err
 }
 
-func (rc *RedisClient) RemoveFromCache(id_hash string) (int64, error) {
+func (rc *RedisClient) RemoveFromCache(ctx context.Context, id_hash string) (int64, error) {
+	_, span := tracing.Tracer.Start(ctx, "rdRemoveFromCache")
+	span.SetAttributes(attribute.String("rd.hash", id_hash))
+	defer span.End()
+
 	result, err := rc.rdb.Del(rc.ctx, id_hash).Result()
 	return result, err
 }
 
 // Records image access on Redis - Most used cache
 func (rc *RedisClient) RecordAccess(file_id string) int64 {
+
 	result, err := rc.rdb.ZIncrBy(rc.ctx, "zset1", 1, file_id).Result()
 	if err != nil {
 		log.Panic(err)

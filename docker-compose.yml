@@ -7,10 +7,14 @@ services:
       - "3000:3000"
     volumes:
       - "./config/config-docker.yaml:/cdn/config.yaml:ro"
+    # environment: # Override Example
+    #   - "APP_TELEMETRY_JAEGER_ADDRESS="
+    #   - "APP_TELEMETRY_JAEGER_PORT="
     depends_on:
       - "consul"
       - "redis"
       - "postgres"
+      - "jaeger"
 
   redis:
     image: "redis:7-alpine"
@@ -38,16 +42,14 @@ services:
       - "1936:1936" # haproxy stats
 
   consul:
-    image: hashicorp/consul:latest
-    volumes:
-     - ./config/consul.json:/consul/config/server.json
-     - ./config/postgres.json.sample:/consul/config/postgres.json
-     - ./config/redis.json.sample:/consul/config/redis.json
-    ports:
-      - "8500:8500"
-      - "8600:8600/tcp"
-      - "8600:8600/udp"
-    command: "agent -bootstrap-expect=1"
+    extends:
+      file: ./docker-compose-consul-dev.yml
+      service: consul
+
+  jaeger:
+    extends:
+      file: ./docker-compose-jaeger-dev.yml
+      service: jaeger
 
 volumes:
   pgdata:

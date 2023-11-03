@@ -1,5 +1,10 @@
 # Go-CDN
-Microservice that serves image BLOBs from PostgreSQL via a REST API, using Redis as cache (LFU), Consul for Service Discovery and HAProxy as Load Balancer.
+Microservice that serves image BLOBs via a REST API, using the following services:
+- [Postgres](https://github.com/postgres/postgres) as primary Database
+- [Redis](https://github.com/redis/redis) as cache (LFU)
+- [Consul](https://github.com/hashicorp/consul) for Service Discovery
+- [HAProxy](https://github.com/haproxy/haproxy/) as Load Balancer
+- [Jaeger](https://github.com/jaegertracing/jaeger) as Tracing Platform
 
 ## Architecture
 ![architecture](./assets/architecture_sketch.png)
@@ -30,6 +35,9 @@ postgres:
 http:
   allow_insert: 
   allow_delete:
+
+telemetry:
+  jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
 ```
 
 # Docker Deployment

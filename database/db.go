@@ -1,11 +1,13 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/consul"
+	"go-cdn/tracing"
 	"strconv"
 	"strings"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type PostgresClient struct {
@@ -20,7 +23,7 @@ type PostgresClient struct {
 }
 
 type StoredFile struct {
-	IDHash  string
+	IDHash   string
 	Filename string
 	Content  []byte
 }
@@ -111,7 +114,12 @@ func (pg *PostgresClient) MigrateDB() error {
 }
 
 // Adds the byte stream as file in the database
-func (pg *PostgresClient) AddFile(id_hash string, filename string, content []byte) error {
+func (pg *PostgresClient) AddFile(ctx context.Context, id_hash string, filename string, content []byte) error {
+	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
+	span.SetAttributes(attribute.String("pg.hash", id_hash),
+		attribute.String("pg.filename", filename))
+	defer span.End()
+
 	con := pg.client
 	// hash := utils.RandStringBytes(6)
 	_, err := con.Exec(`INSERT INTO fs_entities (id_hash, filename, content) VALUES ($1, $2, $3)`, id_hash, filename, content)
@@ -119,14 +127,22 @@ func (pg *PostgresClient) AddFile(id_hash string, filename string, content []byt
 }
 
 // Removes the file from the database, if present
-func (pg *PostgresClient) RemoveFile(id_hash string) error {
+func (pg *PostgresClient) RemoveFile(ctx context.Context, id_hash string) error {
+	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
+	span.SetAttributes(attribute.String("pg.hash", id_hash))
+	defer span.End()
+
 	con := pg.client
 	_, err := con.Exec(`DELETE FROM fs_entities WHERE id_hash=$1`, id_hash)
 	return err
 }
 
 // Queries the specified file saved on the database
-func (pg *PostgresClient) GetFile(id_hash_search string) (*StoredFile, error) {
+func (pg *PostgresClient) GetFile(ctx context.Context, id_hash_search string) (*StoredFile, error) {
+	_, span := tracing.Tracer.Start(ctx, "pgGetFile")
+	span.SetAttributes(attribute.String("pg.hash", id_hash_search))
+	defer span.End()
+
 	con := pg.client
 	rows, err := con.Query("SELECT id, id_hash, filename, content FROM fs_entities WHERE id_hash=$1", id_hash_search)
 	if err != nil {
