@@ -43,7 +43,7 @@ func Data(c *gin.Context, code int, contentType string, data []byte) {
 	_, span := tracer.Start(savedContext, "sendData")
 	defer func() {
 		if r := recover(); r != nil {
-			err := fmt.Errorf("error rendering data:%s: %s", r)
+			err := fmt.Errorf("error rendering data: %s", r)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "data failure")
 			span.End()
@@ -66,7 +66,7 @@ func JSON(c *gin.Context, code int, obj any) {
 	_, span := tracer.Start(savedContext, "sendJSON")
 	defer func() {
 		if r := recover(); r != nil {
-			err := fmt.Errorf("error rendering JSON:%s: %s", r)
+			err := fmt.Errorf("error rendering JSON:: %s", r)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "JSON failure")
 			span.End()
