@@ -79,7 +79,8 @@ func SpawnGin(state *GinState) error {
 	r.Use(errorPropagatorMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
-		c.String(http.StatusOK, "OK")
+		// c.String(http.StatusOK, "OK")
+		String(c, http.StatusOK, "OK")
 	})
 
 	r.GET("/content/:hash", getFileHandler(state))
@@ -120,9 +121,10 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
-				_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
-				c.Data(http.StatusOK, "image", bytes)
-				internal_span.End()
+				// _, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
+				// c.Data(http.StatusOK, "image", bytes)
+				// internal_span.End()
+				Data(c, http.StatusOK, "image", bytes)
 				return
 			}
 		}
@@ -132,9 +134,7 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		if err != nil {
 			state.Sugar.Errorf("error while retrieving from Postgres: %s", err)
 
-			_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
-			c.String(http.StatusBadRequest, "")
-			internal_span.End()
+			String(c, http.StatusBadRequest, "")
 			return
 		}
 
@@ -148,9 +148,10 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 			}()
 		}
 
-		_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
+		/* _, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
 		c.Data(http.StatusOK, "image", stored_file.Content)
-		internal_span.End()
+		internal_span.End() */
+		Data(c, http.StatusOK, "image", stored_file.Content)
 	}
 }
 
@@ -233,6 +234,7 @@ func deleteFileHandler(state *GinState) gin.HandlerFunc {
 			state.Sugar.Errorf("error while removing from Postgres: %s", err)
 		}
 
-		c.String(http.StatusOK, "OK")
+		String(c, http.StatusOK, "OK")
+		// c.String(http.StatusOK, "OK")
 	}
 }
