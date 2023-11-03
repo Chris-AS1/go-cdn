@@ -96,7 +96,7 @@ func SpawnGin(state *GinState) error {
 	return err
 }
 
-// Returns the file, trying first from Redis and then from Postgres
+// GET handler to retrieve an image
 func getFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
@@ -149,7 +149,7 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 	}
 }
 
-// POST with file, filename
+// POST handler to add an image
 func postFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "postFileHandler")
@@ -202,20 +202,25 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 	}
 }
 
-// Doesn't return an HTTP error by design
+// DELETE handler to remove an image. Doesn't return an HTTP error by design
 func deleteFileHandler(state *GinState) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "deleteFileHandler")
 		defer span.End()
 
+		// Setup error propagation
+		err_ch := c.MustGet("err_ch").(chan error)
+		wg := c.MustGet("wg").(*sync.WaitGroup)
+
 		hash := c.Param("hash")
 		state.Sugar.Infof("removing %s image", hash)
 		if state.Config.Redis.RedisEnable {
-			// TODO make async
-			_, err := state.RedisClient.RemoveFromCache(c.Request.Context(), hash)
-			if err != nil {
-				state.Sugar.Errorf("error while removing from Redis: %s", err)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, err := state.RedisClient.RemoveFromCache(c.Request.Context(), hash)
+				err_ch <- err
+			}()
 		}
 
 		err := state.PgClient.RemoveFile(c.Request.Context(), hash)

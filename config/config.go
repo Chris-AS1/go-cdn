@@ -53,7 +53,6 @@ type HTTPServer struct {
 
 type Telemetry struct {
 	JaegerAddress string `mapstructure:"jaeger_address"`
-	// JaegerPort    int    `mapstructure:"jaeger_port"`
 }
 
 func NewConfig() (Config, error) {
