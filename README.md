@@ -32,7 +32,7 @@ http:
   allow_delete:
 
 telemetry:
-  jaeger_address:
+  jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
 ```
 
 # Docker Deployment

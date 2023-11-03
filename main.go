@@ -23,21 +23,6 @@ func main() {
 	dbg, _ := json.Marshal(cfg)
 	sugar.Info("Loaded following configs:", string(dbg))
 
-	// Jaeger/OTEL
-	trace_ctx := context.Background()
-	shutdown, err := tracing.InstallExportPipeline(trace_ctx, &cfg)
-	if err != nil {
-		sugar.Panic(err)
-	}
-	defer func() {
-		if err := shutdown(trace_ctx); err != nil {
-			sugar.Panic(err)
-		}
-	}()
-	// Main span trace
-	_, span := tracing.Tracer.Start(trace_ctx, "main")
-	defer span.End()
-
 	// Handle Consul Connection/Registration
 	if err != nil {
 		sugar.Panic("Error reading config file, %s", err)
@@ -52,6 +37,22 @@ func main() {
 		sugar.Panicf("Couldn't register Consul Service: %s", err)
 	}
 	defer csl_client.DeregisterService(&cfg)
+
+	// Jaeger/OTEL
+	trace_ctx := context.Background()
+	shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
+	if err != nil {
+		sugar.Panic(err)
+	}
+	defer func() {
+		if err := shutdown(trace_ctx); err != nil {
+			sugar.Panic(err)
+		}
+	}()
+
+	// Main span trace
+	_, span := tracing.Tracer.Start(trace_ctx, "main")
+	defer span.End()
 
 	// Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
