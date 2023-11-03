@@ -79,7 +79,6 @@ func SpawnGin(state *GinState) error {
 	r.Use(errorPropagatorMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
-		// c.String(http.StatusOK, "OK")
 		String(c, http.StatusOK, "OK")
 	})
 
@@ -121,9 +120,6 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
-				// _, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
-				// c.Data(http.StatusOK, "image", bytes)
-				// internal_span.End()
 				Data(c, http.StatusOK, "image", bytes)
 				return
 			}
@@ -148,9 +144,6 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 			}()
 		}
 
-		/* _, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
-		c.Data(http.StatusOK, "image", stored_file.Content)
-		internal_span.End() */
 		Data(c, http.StatusOK, "image", stored_file.Content)
 	}
 }
@@ -235,6 +228,5 @@ func deleteFileHandler(state *GinState) gin.HandlerFunc {
 		}
 
 		String(c, http.StatusOK, "OK")
-		// c.String(http.StatusOK, "OK")
 	}
 }
