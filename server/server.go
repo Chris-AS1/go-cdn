@@ -165,20 +165,20 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 		_, err := state.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
 			state.Sugar.Errorf("hash already set")
-			c.String(http.StatusForbidden, "Invalid HashName")
+			String(c, http.StatusForbidden, "Invalid HashName")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")
 			if err != nil {
 				state.Sugar.Errorf("got an error while uploading: %s", err)
-				c.String(http.StatusBadRequest, "")
+				String(c, http.StatusBadRequest, "")
 				return
 			}
 
 			stream, err := file.Open()
 			if err != nil {
 				state.Sugar.Errorf("got an error while uploading: %s", err)
-				c.String(http.StatusBadRequest, "")
+				String(c, http.StatusBadRequest, "")
 				return
 			}
 			defer stream.Close()
@@ -186,7 +186,7 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 			bytes, err := io.ReadAll(stream)
 			if err != nil {
 				state.Sugar.Errorf("got an error while uploading: %s", err)
-				c.String(http.StatusBadRequest, "")
+				String(c, http.StatusBadRequest, "")
 				return
 			}
 
@@ -197,11 +197,11 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 			err = state.PgClient.AddFile(c.Request.Context(), hash, filename, bytes)
 			if err != nil {
 				state.Sugar.Errorf("got an error adding a file: %s", err)
-				c.String(http.StatusBadRequest, "")
+				String(c, http.StatusBadRequest, "")
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
+			JSON(c, http.StatusOK, gin.H{
 				"hash": hash,
 			})
 		}
