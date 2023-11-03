@@ -32,8 +32,8 @@ var Tracer = otel.GetTracerProvider().Tracer(
 func newResource() *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceName("otlptrace-example"),
-		semconv.ServiceVersion("0.0.1"),
+		semconv.ServiceName(instrumentationName),
+		semconv.ServiceVersion(instrumentationVersion),
 	)
 }
 
