@@ -120,7 +120,9 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
+				_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
 				c.Data(http.StatusOK, "image", bytes)
+				internal_span.End()
 				return
 			}
 		}
@@ -129,7 +131,10 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		stored_file, err := state.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
 			state.Sugar.Errorf("error while retrieving from Postgres: %s", err)
+
+			_, internal_span := tracing.Tracer.Start(c.Request.Context(), "sendData")
 			c.String(http.StatusBadRequest, "")
+			internal_span.End()
 			return
 		}
 
