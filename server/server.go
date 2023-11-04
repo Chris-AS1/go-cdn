@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"go-cdn/config"
 	"go-cdn/database"
@@ -8,7 +9,10 @@ import (
 	"go-cdn/utils"
 	"io"
 	"net/http"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -73,7 +77,10 @@ func errorPropagatorMiddleware() gin.HandlerFunc {
 	}
 }
 
-func SpawnGin(state *GinState) error {
+func SpawnGin(state *GinState) {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	r := gin.Default()
 
 	r.Use(otelgin.Middleware("gin-server"))
@@ -94,8 +101,31 @@ func SpawnGin(state *GinState) error {
 		r.DELETE("/content/:hash", deleteFileHandler(state))
 	}
 
-	err := r.Run(fmt.Sprintf("0.0.0.0:%d", state.Config.HTTPServer.DeliveryPort))
-	return err
+	srv := &http.Server{
+		Addr:    fmt.Sprintf("0.0.0.0:%d", state.Config.HTTPServer.DeliveryPort),
+		Handler: r,
+	}
+
+	// Start the server
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			state.Sugar.Panicf("listen: %s", err)
+		}
+	}()
+
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	// Restore default behavior on the interrupt signal and notify user of shutdown.
+	stop()
+	state.Sugar.Info("shutting down gracefully, press Ctrl+C again to force")
+
+	// The context is used to inform the server it has 5 seconds to finish the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		state.Sugar.Panicf("server forced to shutdown: %s", err)
+	}
 }
 
 // GET handler to retrieve an image

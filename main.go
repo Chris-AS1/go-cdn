@@ -14,10 +14,8 @@ import (
 func main() {
 	// Yaml Configurations
 	cfg, err := config.NewConfig()
-	dbg, _ := json.Marshal(cfg)
 
 	// Logger (File with rotation + Console)
-
 	sugar := logger.NewLogger(&cfg)
 	defer func() {
 		err := sugar.Sync()
@@ -25,6 +23,7 @@ func main() {
 	}()
 
 	// Print loaded configs after logger initialization
+	dbg, _ := json.Marshal(cfg)
 	sugar.Info("Loaded following configs:", string(dbg))
 
 	// Handle Consul Connection/Registration
@@ -40,7 +39,12 @@ func main() {
 	if err = csl_client.RegisterService(&cfg); err != nil {
 		sugar.Panicf("Couldn't register Consul Service: %s", err)
 	}
-	defer csl_client.DeregisterService(&cfg)
+	defer func() {
+		err := csl_client.DeregisterService(&cfg)
+		if err != nil {
+			sugar.Panicf("Couldn't de-register Consul Service: %s", err)
+		}
+	}()
 
 	// Jaeger/OTEL
 	trace_ctx := context.Background()
@@ -79,7 +83,6 @@ func main() {
 
 	// Gin Setup
 	// gin.SetMode(gin.ReleaseMode) // Release Mode
-
 	gin_state := &server.GinState{
 		Config:      &cfg,
 		RedisClient: rd_client,
@@ -87,7 +90,5 @@ func main() {
 		Sugar:       sugar,
 	}
 
-	if err = server.SpawnGin(gin_state); err != nil {
-		sugar.Panicf("Gin returned an error: %s", err)
-	}
+	server.SpawnGin(gin_state)
 }
