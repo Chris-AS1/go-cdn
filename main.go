@@ -17,10 +17,7 @@ func main() {
 
 	// Logger (File with rotation + Console)
 	sugar := logger.NewLogger(&cfg)
-	defer func() {
-		err := sugar.Sync()
-		sugar.Panicf("Failed syncing logger: %s", err)
-	}()
+	defer sugar.Sync()
 
 	// Print loaded configs after logger initialization
 	dbg, _ := json.Marshal(cfg)
