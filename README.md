@@ -48,7 +48,11 @@ telemetry:
 # Docker Deployment
 ## Build the image
 ```bash
-docker build -t local/go-fileserver .
+docker build -t local/go-cdn .
+```
+## Run
+```bash
+docker run -v "./config/config-docker.yaml:/cdn/config.yaml:ro" --net "cdn-default" -d local/go-cdn
 ```
 
 ## Docker Compose
@@ -65,4 +69,9 @@ To get around this limitation it's possible to compile each test individually, a
 ```bash
 go test -c ./...
 ./{PACKAGE}.test 
+```
+Otherwise use:
+
+```bash
+make test
 ```
