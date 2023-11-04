@@ -25,3 +25,4 @@ http:
 
 telemetry:
   jaeger_address: "jaeger"
+  logs_path: "/var/log/"

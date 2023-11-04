@@ -6,21 +6,25 @@ import (
 	"go-cdn/config"
 	"go-cdn/consul"
 	"go-cdn/database"
+	"go-cdn/logger"
 	"go-cdn/server"
 	"go-cdn/tracing"
-
-	"go.uber.org/zap"
 )
 
 func main() {
-	// Logger
-	logger := zap.Must(zap.NewProduction())
-	defer logger.Sync()
-	sugar := logger.Sugar()
-
 	// Yaml Configurations
 	cfg, err := config.NewConfig()
 	dbg, _ := json.Marshal(cfg)
+
+	// Logger (File with rotation + Console)
+
+	sugar := logger.NewLogger(&cfg)
+	defer func() {
+		err := sugar.Sync()
+		sugar.Panicf("Failed syncing logger: %s", err)
+	}()
+
+	// Print loaded configs after logger initialization
 	sugar.Info("Loaded following configs:", string(dbg))
 
 	// Handle Consul Connection/Registration
