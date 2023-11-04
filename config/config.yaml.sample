@@ -7,10 +7,10 @@ consul:
   port: 8500
 
 redis:
-  enable: true
+  enable: false
   host: "" 
   password: ""
-  db: 1
+  db: 0
 
 postgres:
   host: "" 
@@ -20,9 +20,13 @@ postgres:
   ssl: false
 
 http:
+  port: 3000
   allow_insert: true
   allow_delete: true
 
 telemetry:
   jaeger_address: "jaeger"
-  logs_path: "/var/log/"
+  logs_path: "./logs/"
+  logs_max_size: 500
+  logs_max_backups: 3
+  logs_max_age: 28

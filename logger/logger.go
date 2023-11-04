@@ -16,9 +16,9 @@ func NewLogger(cfg *config.Config) *zap.SugaredLogger {
 		Filename: fmt.Sprintf("%s/go-cdn-%s.log",
 			strings.TrimRight(cfg.Telemetry.LogPath, "/"),
 			cfg.Consul.ConsulServiceID),
-		MaxSize:    500, // megabytes
-		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxSize:    cfg.Telemetry.LogMaxSize, // megabytes
+		MaxBackups: cfg.Telemetry.LogMaxBackups,
+		MaxAge:     cfg.Telemetry.LogMaxAge, // days
 	})
 	writer_console := zapcore.AddSync(os.Stdout)
 

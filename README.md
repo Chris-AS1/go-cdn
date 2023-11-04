@@ -20,7 +20,7 @@ consul:
   port: 
 
 redis:
-  enable: 
+  enable:       # Optional
   host:         # If Consul is enabled then this is the service name, otherwise ip:port
   password: 
   db: 
@@ -30,14 +30,19 @@ postgres:
   database: 
   username:
   password: 
-  ssl: 
+  ssl:              # Optional
 
 http:
+  port:             # Optional
   allow_insert: 
   allow_delete:
 
 telemetry:
   jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
+  logs_path: 
+  logs_max_size:     # Optional
+  logs_max_backups:  # Optional
+  logs_max_age:      # Optional
 ```
 
 # Docker Deployment
