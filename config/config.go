@@ -53,6 +53,10 @@ type HTTPServer struct {
 
 type Telemetry struct {
 	JaegerAddress string `mapstructure:"jaeger_address"`
+	LogPath       string `mapstructure:"logs_path"`
+	LogMaxSize    int    `mapstructure:"logs_max_size"`
+	LogMaxBackups int    `mapstructure:"logs_max_backups"`
+	LogMaxAge     int    `mapstructure:"logs_max_age"`
 }
 
 func NewConfig() (Config, error) {
@@ -64,7 +68,7 @@ func NewConfig() (Config, error) {
 		RedisDatabase{RedisEnable: false},
 		DatabaseProvider{DatabaseSSL: false},
 		HTTPServer{DeliveryPort: 3000},
-		Telemetry{},
+		Telemetry{LogPath: "./logs", LogMaxSize: 500, LogMaxBackups: 3, LogMaxAge: 28},
 	}
 
 	err := cfg.loadFromFile()
