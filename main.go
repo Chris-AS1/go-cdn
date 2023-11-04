@@ -80,12 +80,12 @@ func main() {
 
 	// Gin Setup
 	// gin.SetMode(gin.ReleaseMode) // Release Mode
-	gin_state := &server.GinState{
+	ginServer := &server.GinServer{
 		Config:      &cfg,
 		RedisClient: rd_client,
 		PgClient:    pg_client,
 		Sugar:       sugar,
 	}
 
-	server.SpawnGin(gin_state)
+	ginServer.Spawn()
 }

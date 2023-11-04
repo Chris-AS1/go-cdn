@@ -23,14 +23,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type GinState struct {
+type GinServer struct {
 	Config      *config.Config
 	RedisClient *database.RedisClient
 	PgClient    *database.PostgresClient
 	Sugar       *zap.SugaredLogger
 }
 
-func requestMetadataMiddleware() gin.HandlerFunc {
+func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Adds the error channel, wg, and id to the request's Context
 		err_ch := make(chan error, 1)
@@ -51,7 +51,7 @@ func requestMetadataMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-func errorPropagatorMiddleware() gin.HandlerFunc {
+func (g *GinServer) errorPropagatorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
 		c.Next()
@@ -77,39 +77,39 @@ func errorPropagatorMiddleware() gin.HandlerFunc {
 	}
 }
 
-func SpawnGin(state *GinState) {
+func (g *GinServer) Spawn() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	r := gin.Default()
 
 	r.Use(otelgin.Middleware("gin-server"))
-	r.Use(requestMetadataMiddleware())
-	r.Use(errorPropagatorMiddleware())
+	r.Use(g.requestMetadataMiddleware())
+	r.Use(g.errorPropagatorMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		String(c, http.StatusOK, "OK")
 	})
 
-	r.GET("/content/:hash", getFileHandler(state))
+	r.GET("/content/:hash", g.getFileHandler())
 
-	if state.Config.HTTPServer.AllowInsertion {
-		r.POST("/content/", postFileHandler(state))
+	if g.Config.HTTPServer.AllowInsertion {
+		r.POST("/content/", g.postFileHandler())
 	}
 
-	if state.Config.HTTPServer.AllowDeletion {
-		r.DELETE("/content/:hash", deleteFileHandler(state))
+	if g.Config.HTTPServer.AllowDeletion {
+		r.DELETE("/content/:hash", g.deleteFileHandler())
 	}
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("0.0.0.0:%d", state.Config.HTTPServer.DeliveryPort),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", g.Config.HTTPServer.DeliveryPort),
 		Handler: r,
 	}
 
 	// Start the server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			state.Sugar.Panicf("listen: %s", err)
+			g.Sugar.Panicf("listen: %s", err)
 		}
 	}()
 
@@ -118,18 +118,18 @@ func SpawnGin(state *GinState) {
 
 	// Restore default behavior on the interrupt signal and notify user of shutdown.
 	stop()
-	state.Sugar.Info("shutting down gracefully, press Ctrl+C again to force")
+	g.Sugar.Info("shutting down gracefully, press Ctrl+C again to force")
 
 	// The context is used to inform the server it has 5 seconds to finish the request it is currently handling
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		state.Sugar.Panicf("server forced to shutdown: %s", err)
+		g.Sugar.Panicf("server forced to shutdown: %s", err)
 	}
 }
 
 // GET handler to retrieve an image
-func getFileHandler(state *GinState) gin.HandlerFunc {
+func (g *GinServer) getFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
@@ -143,12 +143,12 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		hash := c.Param("hash")
 
 		// Check if in Redis
-		if state.Config.Redis.RedisEnable {
-			bytes, err := state.RedisClient.GetFromCache(c.Request.Context(), hash)
+		if g.Config.Redis.RedisEnable {
+			bytes, err := g.RedisClient.GetFromCache(c.Request.Context(), hash)
 
 			// Cache miss, the request is still good
 			if err != nil {
-				state.Sugar.Errorf("error while retrieving from Redis: %s", err)
+				g.Sugar.Errorf("error while retrieving from Redis: %s", err)
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
@@ -158,20 +158,20 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 		}
 
 		// Get from Postgres
-		stored_file, err := state.PgClient.GetFile(c.Request.Context(), hash)
+		stored_file, err := g.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
-			state.Sugar.Errorf("error while retrieving from Postgres: %s", err)
+			g.Sugar.Errorf("error while retrieving from Postgres: %s", err)
 
 			String(c, http.StatusBadRequest, "")
 			return
 		}
 
 		// Asynchronously add to Redis cache
-		if state.Config.Redis.RedisEnable {
+		if g.Config.Redis.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := state.RedisClient.AddToCache(c.Request.Context(), hash, stored_file.Content)
+				err := g.RedisClient.AddToCache(c.Request.Context(), hash, stored_file.Content)
 				err_ch <- err
 			}()
 		}
@@ -181,28 +181,28 @@ func getFileHandler(state *GinState) gin.HandlerFunc {
 }
 
 // POST handler to add an image
-func postFileHandler(state *GinState) gin.HandlerFunc {
+func (g *GinServer) postFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "postFileHandler")
 		defer span.End()
 
 		hash := utils.RandStringBytes(6)
-		_, err := state.PgClient.GetFile(c.Request.Context(), hash)
+		_, err := g.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
-			state.Sugar.Errorf("hash already set")
+			g.Sugar.Errorf("hash already set")
 			String(c, http.StatusForbidden, "Invalid HashName")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")
 			if err != nil {
-				state.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorf("got an error while uploading: %s", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
 
 			stream, err := file.Open()
 			if err != nil {
-				state.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorf("got an error while uploading: %s", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
@@ -210,18 +210,18 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 
 			bytes, err := io.ReadAll(stream)
 			if err != nil {
-				state.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorf("got an error while uploading: %s", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
 
-			state.Sugar.Infow("adding an image",
+			g.Sugar.Infow("adding an image",
 				"filename", filename,
 				"bytes", string(bytes)[:10], "err", err)
 
-			err = state.PgClient.AddFile(c.Request.Context(), hash, filename, bytes)
+			err = g.PgClient.AddFile(c.Request.Context(), hash, filename, bytes)
 			if err != nil {
-				state.Sugar.Errorf("got an error adding a file: %s", err)
+				g.Sugar.Errorf("got an error adding a file: %s", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
@@ -234,7 +234,7 @@ func postFileHandler(state *GinState) gin.HandlerFunc {
 }
 
 // DELETE handler to remove an image. Doesn't return an HTTP error by design
-func deleteFileHandler(state *GinState) gin.HandlerFunc {
+func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "deleteFileHandler")
 		defer span.End()
@@ -244,19 +244,19 @@ func deleteFileHandler(state *GinState) gin.HandlerFunc {
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 
 		hash := c.Param("hash")
-		state.Sugar.Infof("removing %s image", hash)
-		if state.Config.Redis.RedisEnable {
+		g.Sugar.Infof("removing %s image", hash)
+		if g.Config.Redis.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, err := state.RedisClient.RemoveFromCache(c.Request.Context(), hash)
+				_, err := g.RedisClient.RemoveFromCache(c.Request.Context(), hash)
 				err_ch <- err
 			}()
 		}
 
-		err := state.PgClient.RemoveFile(c.Request.Context(), hash)
+		err := g.PgClient.RemoveFile(c.Request.Context(), hash)
 		if err != nil {
-			state.Sugar.Errorf("error while removing from Postgres: %s", err)
+			g.Sugar.Errorf("error while removing from Postgres: %s", err)
 		}
 
 		String(c, http.StatusOK, "OK")
