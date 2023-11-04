@@ -28,6 +28,7 @@ type GinState struct {
 
 func requestMetadataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Adds the error channel, wg, and id to the request's Context
 		err_ch := make(chan error, 1)
 		c.Set("err_ch", err_ch)
 
@@ -35,13 +36,14 @@ func requestMetadataMiddleware() gin.HandlerFunc {
 		c.Set("wg", &wg)
 
 		req_id, _ := uuid.NewRandom()
+		req_path := c.Request.URL.Path
 		c.Set("request.id", req_id.String())
 
-		_, span := tracing.Tracer.Start(c.Request.Context(), "requestMetadataMiddleware",
-			trace.WithAttributes(attribute.String("request.id", req_id.String())),
-		)
+		// Attaches request.id to the root span
+		span := trace.SpanFromContext(c.Request.Context())
+		span.SetAttributes(attribute.String("request.id", req_id.String()))
+		span.SetAttributes(attribute.String("request.path", req_path))
 
-		span.End() // defer would make the middleware span terminate at the end of the request
 		c.Next()
 	}
 }
