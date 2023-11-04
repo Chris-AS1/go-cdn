@@ -47,6 +47,7 @@ func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
 		span := trace.SpanFromContext(c.Request.Context())
 		span.SetAttributes(attribute.String("request.id", req_id.String()))
 		span.SetAttributes(attribute.String("request.path", req_path))
+		span.SetAttributes(attribute.String("service.id", g.Config.Consul.ConsulServiceID))
 
 		c.Next()
 	}
