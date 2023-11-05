@@ -71,6 +71,7 @@ func InstallExportPipeline(ctx context.Context, csl *consul.ConsulClient, cfg *c
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(newResource()),
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(cfg.Telemetry.Sampling)),
 	)
 
 	// Registers a tracer Provider globally.
