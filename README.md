@@ -36,6 +36,8 @@ http:
   port:             # Optional
   allow_insert: 
   allow_delete:
+  rate_limit_enable:
+  rate_limit:       # RPS
 
 telemetry:
   jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port

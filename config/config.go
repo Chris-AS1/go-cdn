@@ -45,10 +45,12 @@ type DatabaseProvider struct {
 }
 
 type HTTPServer struct {
-	DeliveryPort   int    `mapstructure:"port"`
-	ServerSubPath  string `mapstructure:"path"`
-	AllowDeletion  bool   `mapstructure:"allow_delete"`
-	AllowInsertion bool   `mapstructure:"allow_insert"`
+	DeliveryPort    int    `mapstructure:"port"`
+	ServerSubPath   string `mapstructure:"path"`
+	AllowDeletion   bool   `mapstructure:"allow_delete"`
+	AllowInsertion  bool   `mapstructure:"allow_insert"`
+	RateLimitEnable bool   `mapstructure:"rate_limit_enable"`
+	RateLimit       int    `mapstructure:"rate_limit"`
 }
 
 type Telemetry struct {
@@ -67,7 +69,7 @@ func NewConfig() (Config, error) {
 		},
 		RedisDatabase{RedisEnable: false},
 		DatabaseProvider{DatabaseSSL: false},
-		HTTPServer{DeliveryPort: 3000},
+		HTTPServer{DeliveryPort: 3000, RateLimitEnable: false},
 		Telemetry{LogPath: "./logs", LogMaxSize: 500, LogMaxBackups: 3, LogMaxAge: 28},
 	}
 
