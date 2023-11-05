@@ -85,9 +85,6 @@ func (g *GinServer) errorPropagatorMiddleware() gin.HandlerFunc {
 func (g *GinServer) leakBucket() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		g.limit.Take()
-		// now := g.limit.Take()
-		// _ = now.Sub(prev)
-		// g.Sugar.Infof("%v", now.Sub(prev))
 	}
 }
 
