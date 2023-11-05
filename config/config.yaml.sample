@@ -27,6 +27,7 @@ http:
 
 telemetry:
   jaeger_address: "jaeger"
+  sampling: 1
   logs_path: "./logs/"
   logs_max_size: 500
   logs_max_backups: 3
