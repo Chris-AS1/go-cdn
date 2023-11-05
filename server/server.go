@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/ratelimit"
 	"go.uber.org/zap"
 )
 
@@ -28,6 +29,8 @@ type GinServer struct {
 	RedisClient *database.RedisClient
 	PgClient    *database.PostgresClient
 	Sugar       *zap.SugaredLogger
+	limit       ratelimit.Limiter
+	rps         int
 }
 
 func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
@@ -52,6 +55,7 @@ func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
 func (g *GinServer) errorPropagatorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
@@ -78,11 +82,28 @@ func (g *GinServer) errorPropagatorMiddleware() gin.HandlerFunc {
 	}
 }
 
+func (g *GinServer) leakBucket() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		g.limit.Take()
+		// now := g.limit.Take()
+		// _ = now.Sub(prev)
+		// g.Sugar.Infof("%v", now.Sub(prev))
+	}
+}
+
 func (g *GinServer) Spawn() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	r := gin.Default()
+
+	if g.Config.HTTPServer.RateLimitEnable {
+		g.rps = g.Config.HTTPServer.RateLimit
+		// The rate limiter gets applied on *concurrent* requests, to change the behavior use WithoutSlack
+		g.limit = ratelimit.New(g.rps, ratelimit.WithSlack(10))
+		g.Sugar.Infof("Using leakyBucket %d/rps", g.rps)
+		r.Use(g.leakBucket())
+	}
 
 	r.Use(otelgin.Middleware("gin-server"))
 	r.Use(g.requestMetadataMiddleware())
