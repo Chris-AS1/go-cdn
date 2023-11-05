@@ -41,6 +41,7 @@ http:
 
 telemetry:
   jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
+  sampling:          # Optional
   logs_path: 
   logs_max_size:     # Optional
   logs_max_backups:  # Optional
