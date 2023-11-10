@@ -21,25 +21,21 @@ func main() {
 
 	// Print loaded configs after logger initialization
 	dbg, _ := json.Marshal(cfg)
-	sugar.Info("Loaded following configs:", string(dbg))
+	sugar.Infow("config load", "config", string(dbg), "err", err)
 
 	// Handle Consul Connection/Registration
-	if err != nil {
-		sugar.Panic("Error reading config file, %s", err)
-	}
-
 	csl_client, err := consul.NewConsulClient(&cfg)
 	if err != nil {
-		sugar.Panicf("Couldn't get Consul Client, connection failed: %s", err)
+		sugar.Panicw("consul connection", "err", err)
 	}
 
 	if err = csl_client.RegisterService(&cfg); err != nil {
-		sugar.Panicf("Couldn't register Consul Service: %s", err)
+		sugar.Panicw("consul service registration", "err", err)
 	}
 	defer func() {
 		err := csl_client.DeregisterService(&cfg)
 		if err != nil {
-			sugar.Panicf("Couldn't de-register Consul Service: %s", err)
+			sugar.Panicw("consul servie deregistration", "err", err)
 		}
 	}()
 
@@ -47,11 +43,11 @@ func main() {
 	trace_ctx := context.Background()
 	shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
 	if err != nil {
-		sugar.Panic(err)
+		sugar.Panicw("jaeger/otel setup", "err", err)
 	}
 	defer func() {
 		if err := shutdown(trace_ctx); err != nil {
-			sugar.Panic(err)
+			sugar.Panicw("jaeger/otel close", "err", err)
 		}
 	}()
 
@@ -62,11 +58,11 @@ func main() {
 	// Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
 	if err != nil {
-		sugar.Panicf("Couldn't connect to Postgres: %s", err)
+		sugar.Panicw("postgres connection", "err", err)
 	}
 	defer pg_client.CloseConnection()
 	if err = pg_client.MigrateDB(); err != nil {
-		sugar.Panicf("Couldn't apply migrations to Postgres: %s", err)
+		sugar.Panicw("postgres migrations", "err", err)
 	}
 
 	// Redis Connection
@@ -74,7 +70,7 @@ func main() {
 	if cfg.Redis.RedisEnable {
 		rd_client, err = database.NewRedisClient(csl_client, &cfg)
 		if err != nil {
-			sugar.Panicf("Couldn't connect to Redis: %s", err)
+			sugar.Panicw("redis connection", "err", err)
 		}
 	}
 

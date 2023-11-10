@@ -98,7 +98,7 @@ func (g *GinServer) Spawn() {
 		g.rps = g.Config.HTTPServer.RateLimit
 		// The rate limiter gets applied on *concurrent* requests, to change the behavior use WithoutSlack
 		g.limit = ratelimit.New(g.rps, ratelimit.WithSlack(10))
-		g.Sugar.Infof("Using leakyBucket %d/rps", g.rps)
+		g.Sugar.Infow("using leakyBucket", "rps", g.rps)
 		r.Use(g.leakBucket())
 	}
 
@@ -128,7 +128,7 @@ func (g *GinServer) Spawn() {
 	// Start the server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			g.Sugar.Panicf("listen: %s", err)
+			g.Sugar.Panicw("listen", "err", err)
 		}
 	}()
 
@@ -143,7 +143,7 @@ func (g *GinServer) Spawn() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		g.Sugar.Panicf("server forced to shutdown: %s", err)
+		g.Sugar.Panicw("server forced to shutdown", "err", err)
 	}
 }
 
@@ -158,16 +158,14 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 		err_ch := c.MustGet("err_ch").(chan error)
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 
-		// Param
 		hash := c.Param("hash")
 
-		// Check if in Redis
 		if g.Config.Redis.RedisEnable {
 			bytes, err := g.RedisClient.GetFromCache(c.Request.Context(), hash)
 
 			// Cache miss, the request is still good
 			if err != nil {
-				g.Sugar.Errorf("error while retrieving from Redis: %s", err)
+				g.Sugar.Infow("redis cache miss", "err", err)
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
@@ -176,10 +174,9 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 			}
 		}
 
-		// Get from Postgres
 		stored_file, err := g.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
-			g.Sugar.Errorf("error while retrieving from Postgres: %s", err)
+			g.Sugar.Errorw("postgres file miss", "err", err)
 
 			String(c, http.StatusBadRequest, "")
 			return
@@ -207,21 +204,22 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 
 		hash := utils.RandStringBytes(6)
 		_, err := g.PgClient.GetFile(c.Request.Context(), hash)
+
 		if err != nil {
-			g.Sugar.Errorf("hash already set")
+			g.Sugar.Infow("hash already set", "err", err)
 			String(c, http.StatusForbidden, "Invalid HashName")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")
 			if err != nil {
-				g.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorw("FormFile", "err", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
 
 			stream, err := file.Open()
 			if err != nil {
-				g.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorw("FileOpen", "err", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
@@ -229,18 +227,19 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 
 			bytes, err := io.ReadAll(stream)
 			if err != nil {
-				g.Sugar.Errorf("got an error while uploading: %s", err)
+				g.Sugar.Errorw("ReadAll", "err", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
 
 			g.Sugar.Infow("adding an image",
 				"filename", filename,
-				"bytes", string(bytes)[:10], "err", err)
+				"bytes", string(bytes)[:6],
+				"err", err)
 
 			err = g.PgClient.AddFile(c.Request.Context(), hash, filename, bytes)
 			if err != nil {
-				g.Sugar.Errorf("got an error adding a file: %s", err)
+				g.Sugar.Errorw("postgres add file", "err", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
@@ -261,9 +260,8 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		// Setup error propagation
 		err_ch := c.MustGet("err_ch").(chan error)
 		wg := c.MustGet("wg").(*sync.WaitGroup)
-
 		hash := c.Param("hash")
-		g.Sugar.Infof("removing %s image", hash)
+
 		if g.Config.Redis.RedisEnable {
 			wg.Add(1)
 			go func() {
@@ -275,7 +273,7 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 
 		err := g.PgClient.RemoveFile(c.Request.Context(), hash)
 		if err != nil {
-			g.Sugar.Errorf("error while removing from Postgres: %s", err)
+			g.Sugar.Errorw("postgres remove file", "err", err)
 		}
 
 		String(c, http.StatusOK, "OK")
