@@ -13,13 +13,16 @@ func TestInitPipeline(t *testing.T) {
 	cfg, err := config.NewConfig()
 	assert.Nil(t, err)
 
-	csl_client, err := consul.NewConsulClient(&cfg)
+	consul_client, err := consul.NewConsulClient(&cfg)
 	assert.Nil(t, err)
+
 	ctx := context.Background()
-	shutdown, err := InstallExportPipeline(ctx, csl_client, &cfg)
-	assert.Nil(t, err)
+
+	shutdown, err := InstallExportPipeline(ctx, consul_client, &cfg)
 	defer func() {
 		err := shutdown(ctx)
 		assert.Nil(t, err)
 	}()
+
+	assert.Nil(t, err)
 }
