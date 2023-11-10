@@ -28,15 +28,17 @@ func TestConsul(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	// Looks for itself after registering
+	t.Run("TestConsulServiceDiscovery", func(t *testing.T) {
+		address, port, err := consul_client.DiscoverService(cfg.Consul.ConsulServiceName)
+		assert.Nil(t, err)
+		assert.NotSame(t, address, "")
+		assert.NotSame(t, port, 0)
+	})
+
 	t.Run("TestConsulDeregistration", func(t *testing.T) {
 		err := consul_client.DeregisterService(&cfg)
 		assert.Nil(t, err)
 	})
 
-	t.Run("TestConsulServiceDiscovery", func(t *testing.T) {
-		address, port, err := consul_client.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
-		assert.Nil(t, err)
-		assert.NotSame(t, address, "")
-		assert.NotSame(t, port, 0)
-	})
 }
