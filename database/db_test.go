@@ -39,6 +39,11 @@ func TestPostgres(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("TestPostgresGetFile", func(t *testing.T) {
+		_, err = postgres_client.GetFile(ctx, "0001")
+		assert.Nil(t, err)
+	})
+
 	t.Run("TestPostgresRemoveFile", func(t *testing.T) {
 		err = postgres_client.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
