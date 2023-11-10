@@ -10,17 +10,17 @@ default: build
 
 build:
 	@echo "Building $(BINARY)..."
-	$(BUILD) -o $(BINARY) 
+	@$(BUILD) -o $(BINARY) 
 clean:
 	@echo "Cleaning up..."
 	$(CLEAN)
-	rm -f $(BINARY)
+	@rm -f $(BINARY)
 	@for testfile in $(RUN_TEST); do \
 			rm $$testfile; \
 	done
 test:
 	@echo "Building and running tests..."
-	$(BUILD_TEST) ./... 
+	@$(BUILD_TEST) ./... 
 	@for testfile in $(RUN_TEST); do \
 		./$$testfile; \
 	done
