@@ -158,16 +158,14 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 		err_ch := c.MustGet("err_ch").(chan error)
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 
-		// Param
 		hash := c.Param("hash")
 
-		// Check if in Redis
 		if g.Config.Redis.RedisEnable {
 			bytes, err := g.RedisClient.GetFromCache(c.Request.Context(), hash)
 
 			// Cache miss, the request is still good
 			if err != nil {
-				g.Sugar.Errorw("redis cache miss", "err", err)
+				g.Sugar.Infow("redis cache miss", "err", err)
 				err_ch <- err // Only with a buffered ch
 			}
 			if bytes != nil {
@@ -176,7 +174,6 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 			}
 		}
 
-		// Get from Postgres
 		stored_file, err := g.PgClient.GetFile(c.Request.Context(), hash)
 		if err != nil {
 			g.Sugar.Errorw("postgres file miss", "err", err)
