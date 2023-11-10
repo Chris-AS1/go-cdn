@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"go-cdn/config"
 	"go-cdn/consul"
 	"testing"
@@ -8,57 +9,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRedisConnection(t *testing.T) {
+func TestRedis(t *testing.T) {
+	var redis_client *RedisClient
+	ctx := context.Background()
+
 	cfg, err := config.NewConfig()
 	assert.Nil(t, err)
 
-	csl_client, err := consul.NewConsulClient(&cfg)
+	consul_client, err := consul.NewConsulClient(&cfg)
 	assert.Nil(t, err)
 
-	_, err = NewRedisClient(csl_client, &cfg)
-	assert.Nil(t, err)
-}
+	t.Run("TestRedisConnection", func(t *testing.T) {
+		redis_client, err = NewRedisClient(consul_client, &cfg)
+		assert.Nil(t, err)
+	})
 
-func TestRedisGetFromCache(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
+    // Don't even attempt to run other tests if a connection failed
+	if err != nil {
+		return
+	}
 
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
+	t.Run("TestRedisAddToCache", func(t *testing.T) {
+		err = redis_client.AddToCache(ctx, "0001", []byte{00, 00, 00})
+		assert.Nil(t, err)
+	})
 
-	rd_client, err := NewRedisClient(csl_client, &cfg)
-	assert.Nil(t, err)
+	t.Run("TestRedisGetFromCache", func(t *testing.T) {
+		bytes, err := redis_client.GetFromCache(ctx, "0001")
+		assert.Nil(t, err)
+		assert.NotNil(t, bytes)
+	})
 
-	bytes, err := rd_client.GetFromCache("000")
-	assert.Nil(t, err)
-	assert.NotNil(t, bytes)
-}
-
-func TestRedisAddToCache(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
-
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
-
-	rd_client, err := NewRedisClient(csl_client, &cfg)
-	assert.Nil(t, err)
-
-	bytes, err := rd_client.AddToCache("000", []byte{00, 00, 00})
-	assert.Nil(t, err)
-	assert.NotNil(t, bytes)
-}
-
-func TestRedisRemoveFromCache(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
-
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
-
-	rd_client, err := NewRedisClient(csl_client, &cfg)
-	assert.Nil(t, err)
-
-	_, err = rd_client.RemoveFromCache("000")
-	assert.Nil(t, err)
+	t.Run("TestRedisRemoveFromCache", func(t *testing.T) {
+		_, err = redis_client.RemoveFromCache(ctx, "0001")
+		assert.Nil(t, err)
+	})
 }

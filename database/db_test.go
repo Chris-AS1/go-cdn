@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"go-cdn/config"
 	"go-cdn/consul"
 	"testing"
@@ -8,55 +9,38 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPostgresConnection(t *testing.T) {
+func TestPostgres(t *testing.T) {
+	var postgres_client *PostgresClient
+	ctx := context.Background()
+
 	cfg, err := config.NewConfig()
 	assert.Nil(t, err)
 
-	csl_client, err := consul.NewConsulClient(&cfg)
+	consul_client, err := consul.NewConsulClient(&cfg)
 	assert.Nil(t, err)
 
-	_, err = NewPostgresClient(csl_client, &cfg)
-	assert.Nil(t, err)
-}
+	t.Run("TestPostgresConnection", func(t *testing.T) {
+		postgres_client, err = NewPostgresClient(consul_client, &cfg)
+		assert.Nil(t, err)
+	})
 
-func TestPostgresMigrations(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
+	// Don't even attempt to run other tests if a connection failed
+	if err != nil {
+		return
+	}
 
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
+	t.Run("TestPostgresMigrations", func(t *testing.T) {
+		err = postgres_client.MigrateDB()
+		assert.Nil(t, err)
+	})
 
-	pg_client, err := NewPostgresClient(csl_client, &cfg)
-	assert.Nil(t, err)
+	t.Run("TestPostgresAddFile", func(t *testing.T) {
+		err = postgres_client.AddFile(ctx, "0001", "test_file", []byte{00, 00, 00})
+		assert.Nil(t, err)
+	})
 
-	err = pg_client.MigrateDB()
-	assert.Nil(t, err)
-}
-
-func TestAddFile(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
-
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
-
-	pg_client, err := NewPostgresClient(csl_client, &cfg)
-	assert.Nil(t, err)
-
-	err = pg_client.AddFile("0001", "test_file", []byte{00, 00, 00})
-	assert.Nil(t, err)
-}
-
-func TestRemoveFile(t *testing.T) {
-	cfg, err := config.NewConfig()
-	assert.Nil(t, err)
-
-	csl_client, err := consul.NewConsulClient(&cfg)
-	assert.Nil(t, err)
-
-	pg_client, err := NewPostgresClient(csl_client, &cfg)
-	assert.Nil(t, err)
-
-	err = pg_client.RemoveFile("0001")
-	assert.Nil(t, err)
+	t.Run("TestPostgresRemoveFile", func(t *testing.T) {
+		err = postgres_client.RemoveFile(ctx, "0001")
+		assert.Nil(t, err)
+	})
 }
