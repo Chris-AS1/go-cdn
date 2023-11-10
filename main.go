@@ -43,11 +43,11 @@ func main() {
 	trace_ctx := context.Background()
 	shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
 	if err != nil {
-		sugar.Panic(err)
+		sugar.Panicw("jaeger/otel setup", "err", err)
 	}
 	defer func() {
 		if err := shutdown(trace_ctx); err != nil {
-			sugar.Panic(err)
+			sugar.Panicw("jaeger/otel close", "err", err)
 		}
 	}()
 
@@ -62,7 +62,7 @@ func main() {
 	}
 	defer pg_client.CloseConnection()
 	if err = pg_client.MigrateDB(); err != nil {
-		sugar.Panicf("postgres migrations", "err", err)
+		sugar.Panicw("postgres migrations", "err", err)
 	}
 
 	// Redis Connection
