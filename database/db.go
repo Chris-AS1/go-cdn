@@ -23,9 +23,9 @@ type PostgresClient struct {
 }
 
 type StoredFile struct {
-	IDHash   string
-	Filename string
-	Content  []byte
+	IDHash   string `json:"id_hash"`
+	Filename string `json:"filename"`
+	Content  []byte `json:"content,omitempty"`
 }
 
 func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
