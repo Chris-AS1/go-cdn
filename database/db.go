@@ -164,7 +164,7 @@ func (pg *PostgresClient) GetFile(ctx context.Context, id_hash_search string) (*
 }
 
 // Retrieves a list of current files
-func (pg *PostgresClient) GetFileList(ctx context.Context) ([]StoredFile, error) {
+func (pg *PostgresClient) GetFileList(ctx context.Context) (*[]StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "pgGetFileList")
 	defer span.End()
 
@@ -190,5 +190,5 @@ func (pg *PostgresClient) GetFileList(ctx context.Context) ([]StoredFile, error)
 		})
 	}
 
-	return file_list, err
+	return &file_list, err
 }
