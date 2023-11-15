@@ -162,3 +162,33 @@ func (pg *PostgresClient) GetFile(ctx context.Context, id_hash_search string) (*
 
 	return &StoredFile{id_hash, filename, content}, err
 }
+
+// Retrieves a list of current files
+func (pg *PostgresClient) GetFileList(ctx context.Context) ([]StoredFile, error) {
+	_, span := tracing.Tracer.Start(ctx, "pgGetFileList")
+	defer span.End()
+
+	con := pg.client
+	rows, err := con.Query("SELECT id_hash, filename FROM fs_entities")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var id_hash string
+	var filename string
+	file_list := []StoredFile{}
+	for rows.Next() {
+		if err := rows.Scan(&id_hash, &filename); err != nil {
+			return nil, err
+		}
+
+		file_list = append(file_list, StoredFile{
+			IDHash:   id_hash,
+			Filename: filename,
+			Content:  nil,
+		})
+	}
+
+	return file_list, err
+}
