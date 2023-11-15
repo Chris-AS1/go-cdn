@@ -275,6 +275,11 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		err := g.PgClient.RemoveFile(c.Request.Context(), hash)
 		if err != nil {
 			g.Sugar.Errorw("postgres remove file", "err", err)
+			wg.Add(1)
+			go func(err error) {
+				defer wg.Done()
+				err_ch <- err
+			}(err)
 		}
 
 		String(c, http.StatusOK, "OK")
@@ -290,11 +295,16 @@ func (g *GinServer) getFileListHandler() gin.HandlerFunc {
 
 		// Setup error propagation
 		err_ch := c.MustGet("err_ch").(chan error)
-		// wg := c.MustGet("wg").(*sync.WaitGroup)
+		wg := c.MustGet("wg").(*sync.WaitGroup)
 
 		file_list, err := g.PgClient.GetFileList(c.Request.Context())
 		if err != nil {
-			err_ch <- err
+			g.Sugar.Errorw("postgres get file list", "err", err)
+			wg.Add(1)
+			go func(err error) {
+				defer wg.Done()
+				err_ch <- err
+			}(err)
 		}
 
 		JSON(c, http.StatusOK, gin.H{
