@@ -4,8 +4,6 @@ services:
     extends:
       file: ./docker-compose.yml
       service: redis
-    ports:
-      - "6379:6379"
 
   postgres:
     extends:
@@ -19,12 +17,12 @@ services:
 
   consul:
     extends:
-      file: ./docker-compose-consul-dev.yml
+      file: ./docker-compose.yml
       service: consul
 
   jaeger:
     extends:
-      file: ./docker-compose-jaeger-dev.yml
+      file: ./docker-compose.yml
       service: jaeger
 
 volumes:
