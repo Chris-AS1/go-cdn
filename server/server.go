@@ -111,6 +111,7 @@ func (g *GinServer) Spawn() {
 	})
 
 	r.GET("/content/:hash", g.getFileHandler())
+	r.GET("/content/list", g.getFileListHandler())
 
 	if g.Config.HTTPServer.AllowInsertion {
 		r.POST("/content/", g.postFileHandler())
@@ -277,5 +278,27 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		}
 
 		String(c, http.StatusOK, "OK")
+	}
+}
+
+// GET handler to retrieve a list of currently stored files
+func (g *GinServer) getFileListHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileListHandler")
+		c.Request = c.Request.WithContext(rq_ctx)
+		defer span.End()
+
+		// Setup error propagation
+		err_ch := c.MustGet("err_ch").(chan error)
+		// wg := c.MustGet("wg").(*sync.WaitGroup)
+
+		file_list, err := g.PgClient.GetFileList(c.Request.Context())
+		if err != nil {
+			err_ch <- err
+		}
+
+		JSON(c, http.StatusOK, gin.H{
+			"list": file_list,
+		})
 	}
 }
