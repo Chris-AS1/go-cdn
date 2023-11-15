@@ -111,6 +111,7 @@ func (g *GinServer) Spawn() {
 	})
 
 	r.GET("/content/:hash", g.getFileHandler())
+	r.GET("/content/list", g.getFileListHandler())
 
 	if g.Config.HTTPServer.AllowInsertion {
 		r.POST("/content/", g.postFileHandler())
@@ -274,8 +275,40 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		err := g.PgClient.RemoveFile(c.Request.Context(), hash)
 		if err != nil {
 			g.Sugar.Errorw("postgres remove file", "err", err)
+			wg.Add(1)
+			go func(err error) {
+				defer wg.Done()
+				err_ch <- err
+			}(err)
 		}
 
 		String(c, http.StatusOK, "OK")
+	}
+}
+
+// GET handler to retrieve a list of currently stored files
+func (g *GinServer) getFileListHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileListHandler")
+		c.Request = c.Request.WithContext(rq_ctx)
+		defer span.End()
+
+		// Setup error propagation
+		err_ch := c.MustGet("err_ch").(chan error)
+		wg := c.MustGet("wg").(*sync.WaitGroup)
+
+		file_list, err := g.PgClient.GetFileList(c.Request.Context())
+		if err != nil {
+			g.Sugar.Errorw("postgres get file list", "err", err)
+			wg.Add(1)
+			go func(err error) {
+				defer wg.Done()
+				err_ch <- err
+			}(err)
+		}
+
+		JSON(c, http.StatusOK, gin.H{
+			"list": file_list,
+		})
 	}
 }
