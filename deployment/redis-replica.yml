@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-replica
+  namespace: caching
+spec:
+  serviceName: redis-replica
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: replica
+    spec:
+      containers:
+      - name: replica
+        image: redis:7
+        ports:
+        - containerPort: 6379
+        command:
+        - "redis-server"
+        - "--slaveof"
+        - "primary.caching.svc.cluster.local"
+        - "6379"
+

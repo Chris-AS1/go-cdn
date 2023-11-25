@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-primary
+  namespace: caching
+spec:
+  serviceName: redis-primary
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: primary
+    spec:
+      containers:
+      - name: primary
+        image: redis:7
+        ports:
+        - containerPort: 6379
+        command:
+        - "redis-server"
