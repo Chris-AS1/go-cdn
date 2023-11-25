@@ -40,6 +40,7 @@ http:
   rate_limit:       # RPS
 
 telemetry:
+  enable: 
   jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
   sampling:          # Optional
   logs_path: 

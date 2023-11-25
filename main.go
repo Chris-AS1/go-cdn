@@ -24,36 +24,41 @@ func main() {
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
 	// Handle Consul Connection/Registration
-	csl_client, err := consul.NewConsulClient(&cfg)
-	if err != nil {
-		sugar.Panicw("consul connection", "err", err)
-	}
-
-	if err = csl_client.RegisterService(&cfg); err != nil {
-		sugar.Panicw("consul service registration", "err", err)
-	}
-	defer func() {
-		err := csl_client.DeregisterService(&cfg)
+	var csl_client *consul.ConsulClient
+	if cfg.Consul.ConsulEnable {
+		csl_client, err = consul.NewConsulClient(&cfg)
 		if err != nil {
-			sugar.Panicw("consul servie deregistration", "err", err)
+			sugar.Panicw("consul connection", "err", err)
 		}
-	}()
+
+		if err = csl_client.RegisterService(&cfg); err != nil {
+			sugar.Panicw("consul service registration", "err", err)
+		}
+		defer func() {
+			err := csl_client.DeregisterService(&cfg)
+			if err != nil {
+				sugar.Panicw("consul servie deregistration", "err", err)
+			}
+		}()
+	}
 
 	// Jaeger/OTEL
-	trace_ctx := context.Background()
-	shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
-	if err != nil {
-		sugar.Panicw("jaeger/otel setup", "err", err)
-	}
-	defer func() {
-		if err := shutdown(trace_ctx); err != nil {
-			sugar.Panicw("jaeger/otel close", "err", err)
+	if cfg.Telemetry.TelemetryEnable {
+		trace_ctx := context.Background()
+		shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
+		if err != nil {
+			sugar.Panicw("jaeger/otel setup", "err", err)
 		}
-	}()
+		defer func() {
+			if err := shutdown(trace_ctx); err != nil {
+				sugar.Panicw("jaeger/otel close", "err", err)
+			}
+		}()
 
-	// Main span trace
-	_, span := tracing.Tracer.Start(trace_ctx, "main")
-	defer span.End()
+		// Main span trace
+		_, span := tracing.Tracer.Start(trace_ctx, "main")
+		defer span.End()
+	}
 
 	// Postgres Connection
 	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
