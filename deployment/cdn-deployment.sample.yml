@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-cdn-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-cdn
+  template:
+    metadata:
+      labels:
+        app: go-cdn
+    spec:
+      containers:
+      - name: go-cdn
+        image: IMAGE_URL
+        imagePullPolicy: Always 
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: cdn-configs
+          mountPath: "/config"
+          readOnly: true
+      volumes:
+      - name: cdn-configs
+        configMap:
+          name: configs
