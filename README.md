@@ -67,6 +67,12 @@ docker compose up -d
 docker compose logs -f
 ```
 
+# Kubernetes Deployment
+Apply all the deployments starting from the configmap.
+```bash
+kubectl apply -f .
+```
+
 # Testing
 Due the nature of Go, tests are ran inside their respective packages. This creates confusion with the relative paths regarding configs and migrations.
 To get around this limitation it's possible to compile each test individually, and then run it from the root of the folder:
