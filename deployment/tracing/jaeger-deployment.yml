@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-deployment
+  namespace: tracing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracing
+  template:
+    metadata:
+      labels:
+        app: tracing
+    spec:
+      containers:
+      - name: jaeger-all
+        image: jaegertracing/all-in-one:1.50
+        ports: 
+        - containerPort: 4318
+        - containerPort: 6831
+        - containerPort: 6832
+        - containerPort: 5778
+        - containerPort: 16686
+        - containerPort: 4317
+        - containerPort: 14250
+        - containerPort: 14268
+        - containerPort: 14269
+        - containerPort: 9411

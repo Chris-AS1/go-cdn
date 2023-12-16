@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configs
+data:
+  config.yaml: |
+    consul:
+      enable: false
+      service_name: "go-fs"
+      service_address: "auto"
+      address: "localhost"
+      datacenter: "dc1"
+      port: 8500
+
+    redis:
+      enable: true
+      host: "primary.caching.svc.cluster.local:6379" 
+      password: ""
+      db: 0
+
+    postgres:
+      host: "postgres-service.database.svc.cluster.local:5432"
+      database: "go_fs"
+      username: "pguser"
+      password: "pgpassword"
+      ssl: false
+
+    http:
+      allow_insert: true
+      allow_delete: true
+      rate_limit_enable: false
+      rate_limit: 1000 
+
+    telemetry:
+      enable: false
+      jaeger_address: "jaeger-service.tracing.svc.cluster.local:4318"
+      sampling: 1
+      logs_path: "./logs"

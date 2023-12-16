@@ -25,5 +25,6 @@ http:
   rate_limit_enable: false
 
 telemetry:
+  enable: true
   jaeger_address: "jaeger"
   logs_path: "/var/log/"

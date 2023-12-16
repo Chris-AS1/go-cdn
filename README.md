@@ -40,6 +40,7 @@ http:
   rate_limit:       # RPS
 
 telemetry:
+  enable: 
   jaeger_address:    # If Consul is enabled then this is the service name, otherwise ip:port
   sampling:          # Optional
   logs_path: 
@@ -64,6 +65,12 @@ Check the provided `docker-compose.yml` for a deployment example. The provided s
 docker compose build 
 docker compose up -d
 docker compose logs -f
+```
+
+# Kubernetes Deployment
+Apply all the deployments starting from the configmap.
+```bash
+kubectl apply -f .
 ```
 
 # Testing

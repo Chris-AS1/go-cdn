@@ -54,12 +54,13 @@ type HTTPServer struct {
 }
 
 type Telemetry struct {
-	JaegerAddress string  `mapstructure:"jaeger_address"`
-	Sampling      float64 `mapstructure:"sampling"`
-	LogPath       string  `mapstructure:"logs_path"`
-	LogMaxSize    int     `mapstructure:"logs_max_size"`
-	LogMaxBackups int     `mapstructure:"logs_max_backups"`
-	LogMaxAge     int     `mapstructure:"logs_max_age"`
+	TelemetryEnable bool    `mapstructure:"enable"`
+	JaegerAddress   string  `mapstructure:"jaeger_address"`
+	Sampling        float64 `mapstructure:"sampling"`
+	LogPath         string  `mapstructure:"logs_path"`
+	LogMaxSize      int     `mapstructure:"logs_max_size"`
+	LogMaxBackups   int     `mapstructure:"logs_max_backups"`
+	LogMaxAge       int     `mapstructure:"logs_max_age"`
 }
 
 func NewConfig() (Config, error) {
@@ -87,6 +88,7 @@ func (cfg *Config) loadFromFile() error {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
+	viper.AddConfigPath("/config/")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("APP") // Allow override from environemnt via APP_VAR_NAME
