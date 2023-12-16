@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go-cdn/config"
-	"go-cdn/consul"
-	"go-cdn/tracing"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
+	"go-cdn/internal/tracing"
 	"strconv"
 	"strings"
 

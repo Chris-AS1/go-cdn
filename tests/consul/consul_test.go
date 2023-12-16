@@ -1,20 +1,21 @@
-package consul
+package consul_test
 
 import (
-	"go-cdn/config"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConsul(t *testing.T) {
-	var consul_client *ConsulClient
+	var consul_client *consul.ConsulClient
 
 	cfg, err := config.NewConfig()
 	assert.Nil(t, err)
 
 	t.Run("TestConsulConnection", func(t *testing.T) {
-		consul_client, err = NewConsulClient(&cfg)
+		consul_client, err = consul.NewConsulClient(&cfg)
 		assert.Nil(t, err)
 	})
 

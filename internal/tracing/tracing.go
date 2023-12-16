@@ -3,8 +3,8 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"go-cdn/config"
-	"go-cdn/consul"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
 	"strconv"
 	"strings"
 

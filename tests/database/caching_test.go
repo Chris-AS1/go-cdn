@@ -1,16 +1,17 @@
-package database
+package database_test
 
 import (
 	"context"
-	"go-cdn/config"
-	"go-cdn/consul"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
+	"go-cdn/internal/database"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRedis(t *testing.T) {
-	var redis_client *RedisClient
+	var redis_client *database.RedisClient
 	ctx := context.Background()
 
 	cfg, err := config.NewConfig()
@@ -20,11 +21,11 @@ func TestRedis(t *testing.T) {
 	assert.Nil(t, err)
 
 	t.Run("TestRedisConnection", func(t *testing.T) {
-		redis_client, err = NewRedisClient(consul_client, &cfg)
+		redis_client, err = database.NewRedisClient(consul_client, &cfg)
 		assert.Nil(t, err)
 	})
 
-    // Don't even attempt to run other tests if a connection failed
+	// Don't even attempt to run other tests if a connection failed
 	if err != nil {
 		return
 	}

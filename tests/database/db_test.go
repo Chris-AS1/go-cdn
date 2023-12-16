@@ -1,16 +1,17 @@
-package database
+package database_test
 
 import (
 	"context"
-	"go-cdn/config"
-	"go-cdn/consul"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
+	"go-cdn/internal/database"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPostgres(t *testing.T) {
-	var postgres_client *PostgresClient
+	var postgres_client *database.PostgresClient
 	ctx := context.Background()
 
 	cfg, err := config.NewConfig()
@@ -20,7 +21,7 @@ func TestPostgres(t *testing.T) {
 	assert.Nil(t, err)
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
-		postgres_client, err = NewPostgresClient(consul_client, &cfg)
+		postgres_client, err = database.NewPostgresClient(consul_client, &cfg)
 		assert.Nil(t, err)
 	})
 

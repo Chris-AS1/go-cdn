@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"go-cdn/utils"
+	"go-cdn/pkg/utils"
 	"strings"
 
 	capi "github.com/hashicorp/consul/api"

@@ -4,12 +4,14 @@ config.yaml
 
 # Builds
 *.test
-go-cdn
+./go-cdn
 
 # Consul Services, samples already present
 postgres.json
 redis.json
 
-/resources
-/logs
-/deployment
+resources
+logs
+
+cdn-deployment.yml
+cdn-service.yml

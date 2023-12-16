@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"go-cdn/config"
-	"go-cdn/consul"
-	"go-cdn/database"
-	"go-cdn/logger"
-	"go-cdn/server"
-	"go-cdn/tracing"
+	"go-cdn/internal/config"
+	"go-cdn/internal/database"
+	"go-cdn/internal/server"
+	"go-cdn/internal/consul"
+	"go-cdn/internal/logger"
+	"go-cdn/internal/tracing"
 )
 
 func main() {
