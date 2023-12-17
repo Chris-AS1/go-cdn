@@ -68,7 +68,7 @@ docker compose logs -f
 ```
 
 # Kubernetes Deployment
-Apply all the deployments starting from the configmap.
+Apply all the deployments.
 ```bash
 kubectl apply -f .
 ```
