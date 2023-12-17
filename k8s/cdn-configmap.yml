@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: configs
 data:
-  config.yaml: |
+  configs.yaml: |
     consul:
       enable: false
       service_name: "go-fs"

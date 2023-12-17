@@ -17,7 +17,7 @@ WORKDIR /cdn
 
 COPY --from=builder /app/go-cdn go-cdn
 
-COPY ./configs/config.yaml.sample /config/config.yaml
+COPY ./configs/configs.yaml.sample /configs/configs.yaml
 COPY ./migrations migrations
 
 EXPOSE 3000

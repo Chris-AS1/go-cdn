@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - "./configs/config-docker.yaml:/cdn/config.yaml:ro"
+      - "./configs/configs-docker.yaml:/cdn/configs.yaml:ro"
     # environment: # Override Example
     #   - "APP_TELEMETRY_JAEGER_ADDRESS="
     #   - "APP_TELEMETRY_JAEGER_PORT="
