@@ -1,10 +1,12 @@
 *.jpg
 .env
-config.yaml
+configs.yaml
 
 # Builds
 *.test
-./go-cdn
+go-cdn
+# Include cmd/
+!go-cdn/
 
 # Consul Services, samples already present
 postgres.json
