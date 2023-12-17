@@ -5,4 +5,5 @@
 
 # Builds
 *.test
-./go-cdn
+go-cdn
+!go-cdn/
