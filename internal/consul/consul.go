@@ -2,7 +2,7 @@ package consul
 
 import (
 	"errors"
-	"go-cdn/config"
+	"go-cdn/internal/config"
 
 	capi "github.com/hashicorp/consul/api"
 )

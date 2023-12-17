@@ -10,7 +10,7 @@ default: build
 
 build:
 	@echo "Building $(BINARY)..."
-	@$(BUILD) -o $(BINARY) 
+	@$(BUILD) -o $(BINARY) ./cmd/go-cdn/main.go 
 clean:
 	@echo "Cleaning up..."
 	$(CLEAN)
@@ -20,9 +20,9 @@ clean:
 	done
 test:
 	@echo "Building and running tests..."
-	@$(BUILD_TEST) ./... 
-	@for testfile in $(RUN_TEST); do \
-		./$$testfile; \
+	@$(BUILD_TEST) ./tests/*
+	@for testfile in *.test; do \
+		./$$testfile -test.v; \
 	done
 
 .PHONY: build clean test

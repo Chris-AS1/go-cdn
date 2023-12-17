@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - "./config/config-docker.yaml:/cdn/config.yaml:ro"
+      - "./configs/configs-docker.yaml:/cdn/configs.yaml:ro"
     # environment: # Override Example
     #   - "APP_TELEMETRY_JAEGER_ADDRESS="
     #   - "APP_TELEMETRY_JAEGER_PORT="
@@ -19,7 +19,7 @@ services:
   redis:
     image: "redis:7-alpine"
     volumes:
-      - "./config/redis.conf:/redis.conf"
+      - "./configs/redis.conf:/redis.conf"
     command: "redis-server /redis.conf"
     ports:
       - "6379:6379"
@@ -38,7 +38,7 @@ services:
   haproxy:
     image: haproxy:latest
     volumes:
-      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./configs/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - "80:80"
       - "1936:1936" # haproxy stats
@@ -46,10 +46,10 @@ services:
   consul:
     image: hashicorp/consul:latest
     volumes:
-     - ./config/consul.json:/consul/config/server.json
-     - ./config/postgres.json.sample:/consul/config/postgres.json
-     - ./config/redis.json.sample:/consul/config/redis.json
-     - ./config/jaeger.json.sample:/consul/config/jaeger.json
+     - ./configs/consul.json:/consul/config/server.json
+     - ./configs/consul_postgres.json.sample:/consul/config/postgres.json
+     - ./configs/consul_redis.json.sample:/consul/config/redis.json
+     - ./configs/consul_jaeger.json.sample:/consul/config/jaeger.json
     ports:
       - "8500:8500"
       - "8600:8600/tcp"

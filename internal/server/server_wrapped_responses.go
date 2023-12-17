@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"go-cdn/tracing"
+	"go-cdn/internal/tracing"
 
 	"github.com/gin-gonic/gin"
 

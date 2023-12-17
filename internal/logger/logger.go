@@ -2,7 +2,7 @@ package logger
 
 import (
 	"fmt"
-	"go-cdn/config"
+	"go-cdn/internal/config"
 	"os"
 	"strings"
 

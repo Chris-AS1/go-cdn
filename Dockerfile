@@ -9,14 +9,15 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o go-cdn
+RUN go build -o go-cdn ./cmd/go-cdn/main.go 
 
 FROM golang:1.21-alpine as runtime
+
 WORKDIR /cdn
 
 COPY --from=builder /app/go-cdn go-cdn
 
-COPY ./config/config.yaml.sample /config/config.yaml
+COPY ./configs/configs.yaml.sample /configs/configs.yaml
 COPY ./migrations migrations
 
 EXPOSE 3000

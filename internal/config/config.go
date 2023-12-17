@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"go-cdn/utils"
+	"go-cdn/pkg/utils"
 	"strings"
 
 	capi "github.com/hashicorp/consul/api"
@@ -84,11 +84,11 @@ func NewConfig() (Config, error) {
 }
 
 func (cfg *Config) loadFromFile() error {
-	viper.SetConfigName("config")
+	viper.SetConfigName("configs")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config/")
-	viper.AddConfigPath("/config/")
+	viper.AddConfigPath("./configs/")
+	viper.AddConfigPath("/configs/")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("APP") // Allow override from environemnt via APP_VAR_NAME
@@ -97,7 +97,7 @@ func (cfg *Config) loadFromFile() error {
 		return err
 	}
 
-	err := viper.Unmarshal(&cfg)
+	err := viper.Unmarshal(cfg)
 	return err
 }
 

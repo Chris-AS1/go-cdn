@@ -1,7 +1,9 @@
-/resources
 /assets
 /logs
+/tests
+/resources
 
 # Builds
 *.test
 go-cdn
+!go-cdn/

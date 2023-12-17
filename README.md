@@ -9,7 +9,7 @@ Microservice that serves image BLOBs via a REST API, using the following service
 ## Architecture
 ![architecture](./assets/architecture_sketch.png)
 
-# Configuration Sample (config.yaml)
+# Configuration Sample (configs.yaml)
 ```yaml
 consul:
   enable: 
@@ -56,7 +56,7 @@ docker build -t local/go-cdn .
 ```
 ## Run
 ```bash
-docker run -v "./config/config-docker.yaml:/cdn/config.yaml:ro" --net "cdn-default" -d local/go-cdn
+docker run -v "./configs/config-docker.yaml:/cdn/configs.yaml:ro" --net "cdn-default" -d local/go-cdn
 ```
 
 ## Docker Compose
@@ -68,7 +68,7 @@ docker compose logs -f
 ```
 
 # Kubernetes Deployment
-Apply all the deployments starting from the configmap.
+Apply all the deployments.
 ```bash
 kubectl apply -f .
 ```

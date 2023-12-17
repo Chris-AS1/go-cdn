@@ -1,9 +1,10 @@
-package tracing
+package tracing_test
 
 import (
 	"context"
-	"go-cdn/config"
-	"go-cdn/consul"
+	"go-cdn/internal/config"
+	"go-cdn/internal/consul"
+	"go-cdn/internal/tracing"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestInitPipeline(t *testing.T) {
 
 	ctx := context.Background()
 
-	shutdown, err := InstallExportPipeline(ctx, consul_client, &cfg)
+	shutdown, err := tracing.InstallExportPipeline(ctx, consul_client, &cfg)
 	defer func() {
 		err := shutdown(ctx)
 		assert.Nil(t, err)
