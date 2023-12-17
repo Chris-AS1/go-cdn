@@ -97,7 +97,7 @@ func (cfg *Config) loadFromFile() error {
 		return err
 	}
 
-	err := viper.Unmarshal(&cfg)
+	err := viper.Unmarshal(cfg)
 	return err
 }
 

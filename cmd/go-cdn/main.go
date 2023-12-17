@@ -4,22 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
-	"go-cdn/internal/server"
 	"go-cdn/internal/consul"
+	"go-cdn/internal/database"
 	"go-cdn/internal/logger"
+	"go-cdn/internal/server"
 	"go-cdn/internal/tracing"
 )
 
 func main() {
 	// Yaml Configurations
 	cfg, err := config.NewConfig()
-
 	// Logger (File with rotation + Console)
 	sugar := logger.NewLogger(&cfg)
 	defer sugar.Sync()
 
 	// Print loaded configs after logger initialization
+	if err != nil {
+		sugar.Panicw("config load", "err", err)
+	}
 	dbg, _ := json.Marshal(cfg)
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
