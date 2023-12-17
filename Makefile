@@ -21,8 +21,8 @@ clean:
 test:
 	@echo "Building and running tests..."
 	@$(BUILD_TEST) ./tests/*
-	@for testfile in $(RUN_TEST); do \
-		./$$testfile; \
+	@for testfile in *.test; do \
+		./$$testfile -test.v; \
 	done
 
 .PHONY: build clean test
