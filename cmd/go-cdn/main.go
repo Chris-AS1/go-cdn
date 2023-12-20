@@ -62,15 +62,13 @@ func main() {
 		defer span.End()
 	}
 
-	// Postgres Connection
-	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
+	// Postgres Repo/Ctrl
+	db_repo, err := database.NewPostgresRepo(csl_client, &cfg)
 	if err != nil {
-		sugar.Panicw("postgres connection", "err", err)
+		sugar.Panicw("database repo creation", "err", err)
 	}
-	defer pg_client.CloseConnection()
-	if err = pg_client.MigrateDB(); err != nil {
-		sugar.Panicw("postgres migrations", "err", err)
-	}
+	db_ctrl := database.NewController(db_repo)
+	defer db_ctrl.Close()
 
 	// Redis Connection
 	var rd_client *database.RedisClient
@@ -86,7 +84,7 @@ func main() {
 	ginServer := &server.GinServer{
 		Config:      &cfg,
 		RedisClient: rd_client,
-		PgClient:    pg_client,
+		PgClient:    db_repo,
 		Sugar:       sugar,
 	}
 

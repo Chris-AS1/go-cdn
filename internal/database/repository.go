@@ -8,6 +8,7 @@ import (
 	"go-cdn/internal/config"
 	"go-cdn/internal/consul"
 	"go-cdn/internal/tracing"
+	mod "go-cdn/pkg/model"
 	"strconv"
 	"strings"
 
@@ -18,41 +19,39 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type PostgresClient struct {
+type Repository struct {
 	client *sql.DB
 }
 
-type StoredFile struct {
-	IDHash   string `json:"id_hash"`
-	Filename string `json:"filename"`
-	Content  []byte `json:"content,omitempty"`
-}
-
-func NewPostgresClient(csl *consul.ConsulClient, cfg *config.Config) (*PostgresClient, error) {
-	pg_client := &PostgresClient{}
-	connStr, err := pg_client.GetConnectionString(csl, cfg)
+func NewPostgresRepo(csl *consul.ConsulClient, cfg *config.Config) (*Repository, error) {
+	repo := &Repository{}
+	conStr, err := repo.GetConnectionString(csl, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := sql.Open("postgres", connStr)
+	con, err := sql.Open(string(mod.DatabaseTypePostgres), conStr)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Ping()
-	pg_client.client = db
-	return pg_client, err
+	err = con.Ping()
+	repo.client = con
+	if err != nil {
+		return nil, err
+	}
+	err = repo.migrateDB()
+	return repo, err
 }
 
 // Handle the termination of the connection
-func (pg *PostgresClient) CloseConnection() error {
-	err := pg.client.Close()
+func (r *Repository) CloseConnection() error {
+	err := r.client.Close()
 	return err
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+func (r *Repository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
 	var err error
 	var address string
 	var port int
@@ -93,8 +92,8 @@ func (pg *PostgresClient) GetConnectionString(csl *consul.ConsulClient, cfg *con
 }
 
 // Apply all up-migrations under ./migrations
-func (pg *PostgresClient) MigrateDB() error {
-	driver, err := postgres.WithInstance(pg.client, &postgres.Config{})
+func (r *Repository) migrateDB() error {
+	driver, err := postgres.WithInstance(r.client, &postgres.Config{})
 	if err != nil {
 		return err
 	}
@@ -114,36 +113,36 @@ func (pg *PostgresClient) MigrateDB() error {
 }
 
 // Adds the byte stream as file in the database
-func (pg *PostgresClient) AddFile(ctx context.Context, id_hash string, filename string, content []byte) error {
+func (r *Repository) AddFile(ctx context.Context, id_hash string, filename string, content []byte) error {
 	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash),
 		attribute.String("pg.filename", filename))
 	defer span.End()
 
-	con := pg.client
+	con := r.client
 	// hash := utils.RandStringBytes(6)
 	_, err := con.Exec(`INSERT INTO fs_entities (id_hash, filename, content) VALUES ($1, $2, $3)`, id_hash, filename, content)
 	return err
 }
 
 // Removes the file from the database, if present
-func (pg *PostgresClient) RemoveFile(ctx context.Context, id_hash string) error {
+func (r *Repository) RemoveFile(ctx context.Context, id_hash string) error {
 	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash))
 	defer span.End()
 
-	con := pg.client
+	con := r.client
 	_, err := con.Exec(`DELETE FROM fs_entities WHERE id_hash=$1`, id_hash)
 	return err
 }
 
 // Queries the specified file saved on the database
-func (pg *PostgresClient) GetFile(ctx context.Context, id_hash_search string) (*StoredFile, error) {
+func (r *Repository) GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "pgGetFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash_search))
 	defer span.End()
 
-	con := pg.client
+	con := r.client
 	rows, err := con.Query("SELECT id, id_hash, filename, content FROM fs_entities WHERE id_hash=$1", id_hash_search)
 	if err != nil {
 		return nil, err
@@ -160,15 +159,15 @@ func (pg *PostgresClient) GetFile(ctx context.Context, id_hash_search string) (*
 		}
 	}
 
-	return &StoredFile{id_hash, filename, content}, err
+	return &mod.StoredFile{id_hash, filename, content}, err
 }
 
 // Retrieves a list of current files
-func (pg *PostgresClient) GetFileList(ctx context.Context) (*[]StoredFile, error) {
+func (r *Repository) GetFileList(ctx context.Context) (*[]mod.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "pgGetFileList")
 	defer span.End()
 
-	con := pg.client
+	con := r.client
 	rows, err := con.Query("SELECT id_hash, filename FROM fs_entities")
 	if err != nil {
 		return nil, err
@@ -177,13 +176,13 @@ func (pg *PostgresClient) GetFileList(ctx context.Context) (*[]StoredFile, error
 
 	var id_hash string
 	var filename string
-	file_list := []StoredFile{}
+	file_list := []mod.StoredFile{}
 	for rows.Next() {
 		if err := rows.Scan(&id_hash, &filename); err != nil {
 			return nil, err
 		}
 
-		file_list = append(file_list, StoredFile{
+		file_list = append(file_list, mod.StoredFile{
 			IDHash:   id_hash,
 			Filename: filename,
 			Content:  nil,
