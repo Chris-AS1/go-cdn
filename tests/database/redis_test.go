@@ -1,27 +1,29 @@
-package database_test
+package database
 
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
 	"go-cdn/internal/database"
+	"go-cdn/internal/discovery"
+	"go-cdn/pkg/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRedis(t *testing.T) {
-	var redis_client *database.RedisRepository
+	var cache *database.Controller
 	ctx := context.Background()
 
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_client, err := consul.NewConsulClient(cfg)
+	dc, err := discovery.BuildControllerFromConfigs(cfg)
 	assert.Nil(t, err)
 
 	t.Run("TestRedisConnection", func(t *testing.T) {
-		redis_client, err = database.NewRedisRepository(consul_client, cfg)
+		redis_repo, err := database.NewRedisRepository(dc, cfg)
+		cache = database.NewController(redis_repo)
 		assert.Nil(t, err)
 	})
 
@@ -31,18 +33,23 @@ func TestRedis(t *testing.T) {
 	}
 
 	t.Run("TestRedisAddToCache", func(t *testing.T) {
-		err = redis_client.AddFile(ctx, "0001", []byte{00, 00, 00})
+		test_file := &model.StoredFile{
+			IDHash:   "0001",
+			Filename: "test",
+			Content:  []byte{00, 10, 20},
+		}
+		err = cache.AddFile(ctx, test_file)
 		assert.Nil(t, err)
 	})
 
 	t.Run("TestRedisGetFromCache", func(t *testing.T) {
-		bytes, err := redis_client.GetFile(ctx, "0001")
+		bytes, err := cache.GetFile(ctx, "0001")
 		assert.Nil(t, err)
 		assert.NotNil(t, bytes)
 	})
 
 	t.Run("TestRedisRemoveFromCache", func(t *testing.T) {
-		_, err = redis_client.RemoveFile(ctx, "0001")
+		err = cache.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
 	})
 }

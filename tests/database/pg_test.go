@@ -3,25 +3,27 @@ package database
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
 	"go-cdn/internal/database"
+	"go-cdn/internal/discovery"
+	"go-cdn/pkg/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPostgres(t *testing.T) {
-	var postgres_client *database.PostgresRepository
+    var db *database.Controller
 	ctx := context.Background()
 
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_repo, err := consul.NewConsulClient(cfg)
+	dc, err := discovery.BuildControllerFromConfigs(cfg)
 	assert.Nil(t, err)
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
-		postgres_client, err = database.NewPostgresRepository(consul_repo, cfg)
+        pg_repo, err := database.NewPostgresRepository(dc, cfg)
+        db = database.NewController(pg_repo)
 		assert.Nil(t, err)
 	})
 
@@ -30,23 +32,23 @@ func TestPostgres(t *testing.T) {
 		return
 	}
 
-	/* t.Run("TestPostgresMigrations", func(t *testing.T) {
-		err = postgres_client.MigrateDB()
-		assert.Nil(t, err)
-	}) */
-
 	t.Run("TestPostgresAddFile", func(t *testing.T) {
-		err = postgres_client.AddFile(ctx, "0001", "test_file", []byte{00, 00, 00})
+        test_file := &model.StoredFile{
+            IDHash: "0001",
+            Filename: "test",
+            Content: []byte{00,10,20},
+        }
+		err = db.AddFile(ctx,test_file)
 		assert.Nil(t, err)
 	})
 
 	t.Run("TestPostgresGetFile", func(t *testing.T) {
-		_, err = postgres_client.GetFile(ctx, "0001")
+		_, err = db.GetFile(ctx, "0001")
 		assert.Nil(t, err)
 	})
 
 	t.Run("TestPostgresRemoveFile", func(t *testing.T) {
-		err = postgres_client.RemoveFile(ctx, "0001")
+		err = db.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
 	})
 }

@@ -2,11 +2,28 @@ package discovery
 
 import (
 	"errors"
+	"go-cdn/internal/config"
 	"math/rand"
 )
 
 var ErrServiceNotFound = errors.New("service not found")
 var ErrServiceDisabled = errors.New("discovery service is disabled")
+
+func BuildControllerFromConfigs(cfg *config.Config) (*Controller, error) {
+	if cfg.Consul.ConsulEnable {
+		consul_repo, err := NewConsulRepo(
+			cfg.GetConsulConfig(),
+			cfg.GetServiceDefinition(),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewController(consul_repo), nil
+	} else {
+		return NewController(NewDummyRepo()), nil
+	}
+}
 
 type discoveryRepository interface {
 	RegisterService() error

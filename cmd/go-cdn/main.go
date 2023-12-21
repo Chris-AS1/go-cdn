@@ -13,22 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func BuildControllerFromConfigs(cfg *config.Config) (*discovery.Controller, error) {
-	if cfg.Consul.ConsulEnable {
-		consul_repo, err := discovery.NewConsulRepo(
-			cfg.GetConsulConfig(),
-			cfg.GetServiceDefinition(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return discovery.NewController(consul_repo), nil
-	} else {
-		return discovery.NewController(discovery.NewDummyRepo()), nil
-	}
-}
-
 func main() {
 	// Yaml Configurations
 	cfg, err := config.New()
@@ -45,7 +29,7 @@ func main() {
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
 	// Handle Service Discovery Connection/Registration
-	dc, err := BuildControllerFromConfigs(cfg)
+	dc, err := discovery.BuildControllerFromConfigs(cfg)
 	if err != nil {
 		sugar.Panicw("discovery connection", "err", err)
 	}
