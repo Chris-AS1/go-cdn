@@ -13,10 +13,15 @@ func TestConsul(t *testing.T) {
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	dc, err := discovery.BuildControllerFromConfigs(cfg)
+	consul_repo, err := discovery.NewConsulRepo(
+		cfg.GetConsulConfig(),
+		cfg.GetServiceDefinition(),
+	)
 	assert.Nil(t, err)
 
-	// Don't even attempt to run other tests if a client isn't returned
+	dc := discovery.NewController(consul_repo)
+
+	// Don't attempt to run other tests if a client isn't returned
 	if err != nil {
 		return
 	}
@@ -29,6 +34,7 @@ func TestConsul(t *testing.T) {
 	// Looks for itself after registering
 	t.Run("TestConsulServiceDiscovery", func(t *testing.T) {
 		full_address, err := dc.DiscoverService(cfg.Consul.ConsulServiceName)
+		assert.Nil(t, err)
 		spl_full_address := strings.Split(full_address, ":")
 		address, port := spl_full_address[0], spl_full_address[1]
 		assert.Nil(t, err)
@@ -39,5 +45,19 @@ func TestConsul(t *testing.T) {
 	t.Run("TestConsulDeregistration", func(t *testing.T) {
 		err := dc.DeregisterService()
 		assert.Nil(t, err)
+	})
+}
+func TestDummy(t *testing.T) {
+	dc := discovery.NewController(discovery.NewDummyRepo())
+
+	// Looks for itself after registering
+	t.Run("TestConsulServiceDiscovery", func(t *testing.T) {
+		full_address, err := dc.DiscoverService("localhost:1234")
+		assert.Nil(t, err)
+		spl_full_address := strings.Split(full_address, ":")
+		address, port := spl_full_address[0], spl_full_address[1]
+		assert.Nil(t, err)
+		assert.NotSame(t, address, "")
+		assert.NotSame(t, port, 0)
 	})
 }
