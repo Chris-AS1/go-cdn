@@ -25,31 +25,31 @@ func NewController(repo databaseRepository) *Controller {
 }
 
 func (c *Controller) GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error) {
-	content, err := c.repo.GetFile(ctx, id_hash_search)
+	file, err := c.repo.GetFile(ctx, id_hash_search)
 	if err != nil {
-		return nil, ErrDatabaseOp
+		return nil, err
 	}
-	return content, nil
+	return file, nil
 }
 
 func (c *Controller) GetFileList(ctx context.Context) (*[]mod.StoredFile, error) {
 	l, err := c.repo.GetFileList(ctx)
 	if err != nil {
-		return nil, ErrDatabaseOp
+		return nil, err
 	}
 	return l, nil
 }
 
 func (c *Controller) AddFile(ctx context.Context, file *mod.StoredFile) error {
 	if err := c.repo.AddFile(ctx, file); err != nil {
-		return ErrDatabaseOp
+		return err
 	}
 	return nil
 }
 
 func (c *Controller) RemoveFile(ctx context.Context, id_hash string) error {
 	if err := c.repo.RemoveFile(ctx, id_hash); err != nil {
-		return ErrDatabaseOp
+		return err
 	}
 	return nil
 }

@@ -48,6 +48,12 @@ func TestRedis(t *testing.T) {
 		assert.NotNil(t, bytes)
 	})
 
+    // Fetch a nonexistent file
+	t.Run("TestRedisGetFromCache2", func(t *testing.T) {
+		_, err := cache.GetFile(ctx, "0002")
+		assert.NotNil(t, err)
+	})
+
 	t.Run("TestRedisRemoveFromCache", func(t *testing.T) {
 		err = cache.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)

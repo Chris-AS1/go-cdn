@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-cdn/internal/config"
 	"go-cdn/internal/database"
@@ -182,24 +183,23 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 		hash := c.Param("hash")
 
 		if g.Config.Cache.RedisEnable {
-			file, err := g.Cache.GetFile(c.Request.Context(), hash)
-			bytes := file.Content
-
+			cached_file, err := g.Cache.GetFile(c.Request.Context(), hash)
 			// Cache miss, the request is still good
 			if err != nil {
 				g.Sugar.Infow("cache miss", "err", err)
-				err_ch <- err // Only with a buffered ch
-			}
-			if bytes != nil {
-				Data(c, http.StatusOK, "image", bytes)
-				return
+				err_ch <- err // Only works with a buffered ch
+			} else {
+				bytes := cached_file.Content
+				if bytes != nil {
+					Data(c, http.StatusOK, "image", bytes)
+					return
+				}
 			}
 		}
 
 		stored_file, err := g.DB.GetFile(c.Request.Context(), hash)
 		if err != nil {
 			g.Sugar.Errorw("db file miss", "err", err)
-
 			String(c, http.StatusBadRequest, "")
 			return
 		}
@@ -225,11 +225,12 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 		defer span.End()
 
 		hash := utils.RandStringBytes(6)
-		_, err := g.DB.GetFile(c.Request.Context(), hash)
+		// TODO differentiate between errors and file already present
+		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
-		if err != nil {
-			g.Sugar.Infow("hash already set", "err", err)
-			String(c, http.StatusForbidden, "Invalid HashName")
+		if err != nil && !errors.Is(err, model.ErrKeyDoesNotExist) || stored.Content != nil {
+			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
+			String(c, http.StatusInternalServerError, "error")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")

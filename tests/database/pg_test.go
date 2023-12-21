@@ -12,7 +12,7 @@ import (
 )
 
 func TestPostgres(t *testing.T) {
-    var db *database.Controller
+	var db *database.Controller
 	ctx := context.Background()
 
 	cfg, err := config.New()
@@ -22,8 +22,8 @@ func TestPostgres(t *testing.T) {
 	assert.Nil(t, err)
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
-        pg_repo, err := database.NewPostgresRepository(dc, cfg)
-        db = database.NewController(pg_repo)
+		pg_repo, err := database.NewPostgresRepository(dc, cfg)
+		db = database.NewController(pg_repo)
 		assert.Nil(t, err)
 	})
 
@@ -33,17 +33,23 @@ func TestPostgres(t *testing.T) {
 	}
 
 	t.Run("TestPostgresAddFile", func(t *testing.T) {
-        test_file := &model.StoredFile{
-            IDHash: "0001",
-            Filename: "test",
-            Content: []byte{00,10,20},
-        }
-		err = db.AddFile(ctx,test_file)
+		test_file := &model.StoredFile{
+			IDHash:   "0001",
+			Filename: "test",
+			Content:  []byte{00, 10, 20},
+		}
+		err = db.AddFile(ctx, test_file)
 		assert.Nil(t, err)
 	})
 
 	t.Run("TestPostgresGetFile", func(t *testing.T) {
 		_, err = db.GetFile(ctx, "0001")
+		assert.Nil(t, err)
+	})
+
+    // Fetch a nonexistent file
+	t.Run("TestPostgresGetFile2", func(t *testing.T) {
+		_, err = db.GetFile(ctx, "0002")
 		assert.Nil(t, err)
 	})
 

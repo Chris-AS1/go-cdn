@@ -7,7 +7,6 @@ import (
 	"go-cdn/internal/discovery"
 	"go-cdn/internal/tracing"
 	"go-cdn/pkg/model"
-	"go-cdn/pkg/utils"
 	"time"
 
 	"github.com/go-redis/redis/v9"
@@ -59,7 +58,7 @@ func (rc *RedisRepository) CloseConnection() error {
 }
 
 func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
+	_, span := tracing.Tracer.Start(ctx, "rdGetFile")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 
@@ -68,7 +67,7 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
 	switch {
 	case err == redis.Nil:
-		return nil, utils.ErrorRedisKeyDoesNotExist
+		return nil, model.ErrKeyDoesNotExist
 	case err != nil:
 		return nil, err
 	}
@@ -76,13 +75,13 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 	return &model.StoredFile{IDHash: id_hash, Filename: "", Content: bytes}, nil
 }
 func (rc *RedisRepository) GetFileList(ctx context.Context) (*[]model.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
+	_, span := tracing.Tracer.Start(ctx, "rdGetFileList")
 	defer span.End()
 	return nil, fmt.Errorf("not implemented")
 }
 
 func (rc *RedisRepository) AddFile(ctx context.Context, file *model.StoredFile) error {
-	_, span := tracing.Tracer.Start(ctx, "rdAddToCache")
+	_, span := tracing.Tracer.Start(ctx, "rdAddFile")
 	span.SetAttributes(attribute.String("rd.hash", file.IDHash))
 	defer span.End()
 
@@ -91,7 +90,7 @@ func (rc *RedisRepository) AddFile(ctx context.Context, file *model.StoredFile) 
 }
 
 func (rc *RedisRepository) RemoveFile(ctx context.Context, id_hash string) error {
-	_, span := tracing.Tracer.Start(ctx, "rdRemoveFromCache")
+	_, span := tracing.Tracer.Start(ctx, "rdRemoveFile")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 

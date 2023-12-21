@@ -1,5 +1,9 @@
 package config
 
+const (
+	AddressRetrievalAuto string = "auto"
+)
+
 type Config struct {
 	Consul     Consul     `mapstructure:"consul"`
 	Cache      Cache      `mapstructure:"redis"`
@@ -51,4 +55,3 @@ type Telemetry struct {
 	LogMaxBackups   int     `mapstructure:"logs_max_backups"`
 	LogMaxAge       int     `mapstructure:"logs_max_age"`
 }
-

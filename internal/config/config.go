@@ -10,10 +10,9 @@ import (
 )
 
 func New() (*Config, error) {
-	consul_service_id := utils.RandStringBytes(4)
 	cfg := Config{
 		Consul: Consul{
-			ConsulServiceID: consul_service_id,
+			ConsulServiceID: utils.RandStringBytes(4),
 		},
 		Cache:      Cache{RedisEnable: false},
 		Database:   Database{DatabaseSSL: false},
@@ -22,7 +21,7 @@ func New() (*Config, error) {
 	}
 
 	err := cfg.loadFromFile()
-	if cfg.Consul.ConsulServiceAddress == "auto" {
+	if cfg.Consul.ConsulServiceAddress == AddressRetrievalAuto {
 		cfg.Consul.ConsulServiceAddress = utils.GetLocalIPv4()
 	}
 
