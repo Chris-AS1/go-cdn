@@ -25,7 +25,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type GinState struct {
+type GinServer struct {
 	Config *config.Config
 	Cache  *database.Controller
 	DB     *database.Controller
@@ -34,8 +34,8 @@ type GinState struct {
 	rps    int
 }
 
-func New(cfg *config.Config, db *database.Controller, cache *database.Controller, sugar *zap.SugaredLogger) *GinState {
-	g := &GinState{
+func New(cfg *config.Config, db *database.Controller, cache *database.Controller, sugar *zap.SugaredLogger) *GinServer {
+	g := &GinServer{
 		Config: cfg,
 		Cache:  cache,
 		DB:     db,
@@ -52,7 +52,7 @@ func New(cfg *config.Config, db *database.Controller, cache *database.Controller
 	return g
 }
 
-func (g *GinState) requestMetadataMiddleware() gin.HandlerFunc {
+func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Adds the error channel, wg, and id to the request's Context
 		err_ch := make(chan error, 1)
@@ -75,7 +75,7 @@ func (g *GinState) requestMetadataMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (g *GinState) errorPropagatorMiddleware() gin.HandlerFunc {
+func (g *GinServer) errorPropagatorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		span := trace.SpanFromContext(c.Request.Context()) // Here to attach the error to the root span
 		c.Next()
@@ -101,20 +101,13 @@ func (g *GinState) errorPropagatorMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (g *GinState) leakBucket() gin.HandlerFunc {
+func (g *GinServer) leakBucket() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		g.limit.Take()
 	}
 }
 
-type OptFunc func()
-
-func WithMode(mode string) OptFunc {
-	return func() {
-		gin.SetMode(mode)
-	}
-}
-func (g *GinState) Spawn(opts ...OptFunc) {
+func (g *GinServer) Spawn(opts ...OptFunc) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -176,7 +169,7 @@ func (g *GinState) Spawn(opts ...OptFunc) {
 }
 
 // GET handler to retrieve an image
-func (g *GinState) getFileHandler() gin.HandlerFunc {
+func (g *GinServer) getFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
@@ -226,7 +219,7 @@ func (g *GinState) getFileHandler() gin.HandlerFunc {
 }
 
 // POST handler to add an image
-func (g *GinState) postFileHandler() gin.HandlerFunc {
+func (g *GinServer) postFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "postFileHandler")
 		defer span.End()
@@ -286,7 +279,7 @@ func (g *GinState) postFileHandler() gin.HandlerFunc {
 }
 
 // DELETE handler to remove an image. Doesn't return an HTTP error by design
-func (g *GinState) deleteFileHandler() gin.HandlerFunc {
+func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, span := tracing.Tracer.Start(c.Request.Context(), "deleteFileHandler")
 		defer span.End()
@@ -320,7 +313,7 @@ func (g *GinState) deleteFileHandler() gin.HandlerFunc {
 }
 
 // GET handler to retrieve a list of currently stored files
-func (g *GinState) getFileListHandler() gin.HandlerFunc {
+func (g *GinServer) getFileListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileListHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
