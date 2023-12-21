@@ -1,4 +1,4 @@
-package database_test
+package database
 
 import (
 	"context"
@@ -17,11 +17,11 @@ func TestPostgres(t *testing.T) {
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_client, err := consul.NewConsulClient(cfg)
+	consul_repo, err := consul.NewConsulClient(cfg)
 	assert.Nil(t, err)
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
-		postgres_client, err = database.NewPostgresRepository(consul_client, cfg)
+		postgres_client, err = database.NewPostgresRepository(consul_repo, cfg)
 		assert.Nil(t, err)
 	})
 

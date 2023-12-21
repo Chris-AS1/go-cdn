@@ -2,15 +2,15 @@ package discovery
 
 import (
 	"errors"
-	"go-cdn/internal/config"
 	"math/rand"
 )
 
 var ErrServiceNotFound = errors.New("service not found")
+var ErrServiceDisabled = errors.New("discovery service is disabled")
 
 type discoveryRepository interface {
-	RegisterService(*config.Config) error
-	DeregisterService(*config.Config) error
+	RegisterService() error
+	DeregisterService() error
 	DiscoverService(string) ([]string, error)
 }
 
@@ -22,13 +22,13 @@ func NewController(repo discoveryRepository) *Controller {
 	return &Controller{repo}
 }
 
-func (c *Controller) RegisterService(cfg *config.Config) error {
-	err := c.repo.RegisterService(cfg)
+func (c *Controller) RegisterService() error {
+	err := c.repo.RegisterService()
 	return err
 }
 
-func (c *Controller) DeregisterService(cfg *config.Config) error {
-	err := c.repo.DeregisterService(cfg)
+func (c *Controller) DeregisterService() error {
+	err := c.repo.DeregisterService()
 	return err
 }
 

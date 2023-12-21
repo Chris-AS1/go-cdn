@@ -8,8 +8,6 @@ import (
 	"go-cdn/internal/tracing"
 	"go-cdn/pkg/model"
 	"go-cdn/pkg/utils"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v9"
@@ -21,40 +19,25 @@ type RedisRepository struct {
 	client *redis.Client
 }
 
-func NewRedisRepository(csl *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
+func NewRedisRepository(dc *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
 	rc := &RedisRepository{
 		ctx: context.Background(),
 	}
-	err := rc.connect(csl, cfg)
+	err := rc.connect(dc, cfg)
 	return rc, err
 }
 
-func (rc *RedisRepository) GetConnectionString(csl *discovery.Controller, cfg *config.Config) (string, error) {
-	var err error
-	var address string
-	var port int
-	if cfg.Consul.ConsulEnable {
-		// Discovers Redis from Consul
-		address, err = csl.DiscoverService(cfg.Redis.RedisAddress)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		cfg_adr := strings.Split(cfg.Redis.RedisAddress, ":")
-		if len(cfg_adr) != 2 {
-			return "", fmt.Errorf("wrong address format")
-		}
-		address = cfg_adr[0]
-		port, _ = strconv.Atoi(cfg_adr[1])
+func (rc *RedisRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
+	address, err := dc.DiscoverService(cfg.Redis.RedisAddress)
+	if err != nil {
+		return "", err
 	}
 
-	connStr := fmt.Sprintf("%s:%d", address, port)
-	return connStr, nil
-
+	return address, nil
 }
 
-func (rc *RedisRepository) connect(csl *discovery.Controller, cfg *config.Config) error {
-	address, err := rc.GetConnectionString(csl, cfg)
+func (rc *RedisRepository) connect(dc *discovery.Controller, cfg *config.Config) error {
+	address, err := rc.GetConnectionString(dc, cfg)
 	if err != nil {
 		return err
 	}
@@ -69,6 +52,10 @@ func (rc *RedisRepository) connect(csl *discovery.Controller, cfg *config.Config
 
 	_, err = rc.client.Ping(rc.ctx).Result()
 	return err
+}
+
+func (rc *RedisRepository) CloseConnection() error {
+	return rc.client.Close()
 }
 
 func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.StoredFile, error) {
@@ -90,7 +77,7 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 }
 func (rc *RedisRepository) GetFileList(ctx context.Context) (*[]model.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
-    defer span.End()
+	defer span.End()
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -110,8 +97,4 @@ func (rc *RedisRepository) RemoveFile(ctx context.Context, id_hash string) error
 
 	_, err := rc.client.Del(rc.ctx, id_hash).Result()
 	return err
-}
-
-func (rc *RedisRepository) CloseConnection() error {
-	return rc.client.Close()
 }

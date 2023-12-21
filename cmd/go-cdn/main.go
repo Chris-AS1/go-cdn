@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"go-cdn/internal/config"
-	"go-cdn/internal/discovery"
 	"go-cdn/internal/database"
+	"go-cdn/internal/discovery"
 	"go-cdn/internal/logger"
 	"go-cdn/internal/server"
 	"go-cdn/internal/tracing"
@@ -13,9 +13,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func BuildControllerFromConfigs(cfg *config.Config) (*discovery.Controller, error) {
+	if cfg.Consul.ConsulEnable {
+		consul_repo, err := discovery.NewConsulRepo(
+			cfg.GetConsulConfig(),
+			cfg.GetServiceDefinition(),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return discovery.NewController(consul_repo), nil
+	} else {
+		return discovery.NewController(discovery.NewDummyRepo()), nil
+	}
+}
+
 func main() {
 	// Yaml Configurations
 	cfg, err := config.New()
+
 	// Logger (File with rotation + Console)
 	sugar := logger.NewLogger(cfg)
 	defer sugar.Sync()
@@ -27,29 +44,25 @@ func main() {
 	dbg, _ := json.Marshal(cfg)
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
-	// Handle Consul Connection/Registration
-	var csl_client *discovery.ConsulRepository
-	if cfg.Consul.ConsulEnable {
-		csl_client, err = discovery.NewConsulRepo(cfg)
-		if err != nil {
-			sugar.Panicw("consul connection", "err", err)
-		}
-
-		if err = csl_client.RegisterService(cfg); err != nil {
-			sugar.Panicw("consul service registration", "err", err)
-		}
-		defer func() {
-			err := csl_client.DeregisterService(cfg)
-			if err != nil {
-				sugar.Panicw("consul servie deregistration", "err", err)
-			}
-		}()
+	// Handle Service Discovery Connection/Registration
+	dc, err := BuildControllerFromConfigs(cfg)
+	if err != nil {
+		sugar.Panicw("discovery connection", "err", err)
 	}
+	if err = dc.RegisterService(); err != nil {
+		sugar.Panicw("discovery service registration", "err", err)
+	}
+	defer func() {
+		err := dc.DeregisterService()
+		if err != nil {
+			sugar.Panicw("discovery service deregistration", "err", err)
+		}
+	}()
 
 	// Jaeger/OTEL
 	if cfg.Telemetry.TelemetryEnable {
 		trace_ctx := context.Background()
-		shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, cfg)
+		shutdown, err := tracing.InstallExportPipeline(trace_ctx, dc, cfg)
 		if err != nil {
 			sugar.Panicw("jaeger/otel setup", "err", err)
 		}
@@ -64,18 +77,18 @@ func main() {
 		defer span.End()
 	}
 
-	// Postgres Repo/Ctrl
-	pg_repo, err := database.NewPostgresRepository(csl_client, cfg)
+	// DB Repo
+	pg_repo, err := database.NewPostgresRepository(dc, cfg)
 	if err != nil {
 		sugar.Panicw("database repo creation", "err", err)
 	}
 	db := database.NewController(pg_repo)
 	defer db.Close()
 
-	// Redis Connection
+	// Cache Repo
 	var cache *database.Controller
 	if cfg.Redis.RedisEnable {
-		rd_repo, err := database.NewRedisRepository(csl_client, cfg)
+		rd_repo, err := database.NewRedisRepository(dc, cfg)
 		if err != nil {
 			sugar.Panicw("redis repo creation", "err", err)
 		}

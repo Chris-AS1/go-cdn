@@ -9,8 +9,6 @@ import (
 	"go-cdn/internal/discovery"
 	"go-cdn/internal/tracing"
 	mod "go-cdn/pkg/model"
-	"strconv"
-	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -23,9 +21,9 @@ type PostgresRepository struct {
 	client *sql.DB
 }
 
-func NewPostgresRepository(csl *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
+func NewPostgresRepository(dc *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
 	repo := &PostgresRepository{}
-	conStr, err := repo.GetConnectionString(csl, cfg)
+	conStr, err := repo.GetConnectionString(dc, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -51,24 +49,10 @@ func (r *PostgresRepository) CloseConnection() error {
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (r *PostgresRepository) GetConnectionString(csl *discovery.Controller, cfg *config.Config) (string, error) {
-	var err error
-	var address string
-	var port int
-
-	if cfg.Consul.ConsulEnable {
-		// Discovers Postgres from Consul
-		address, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		cfg_adr := strings.Split(cfg.DatabaseProvider.DatabaseAddress, ":")
-		if len(cfg_adr) != 2 {
-			return "", fmt.Errorf("wrong address format")
-		}
-		address = cfg_adr[0]
-		port, _ = strconv.Atoi(cfg_adr[1])
+func (r *PostgresRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
+	address, err := dc.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
+	if err != nil {
+		return "", err
 	}
 
 	sslmode := ""
@@ -79,11 +63,10 @@ func (r *PostgresRepository) GetConnectionString(csl *discovery.Controller, cfg 
 		sslmode = "enable"
 	}
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s&connect_timeout=5",
+	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s&connect_timeout=5",
 		cfg.DatabaseProvider.DatabaseUsername,
 		cfg.DatabaseProvider.DatabasePassword,
 		address,
-		port,
 		cfg.DatabaseProvider.DatabaseName,
 		sslmode,
 	)
