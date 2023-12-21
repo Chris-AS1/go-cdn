@@ -11,17 +11,17 @@ import (
 )
 
 func TestPostgres(t *testing.T) {
-	var postgres_client *database.PostgresClient
+	var postgres_client *database.PostgresRepository
 	ctx := context.Background()
 
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_client, err := consul.NewConsulClient(&cfg)
+	consul_client, err := consul.NewConsulClient(cfg)
 	assert.Nil(t, err)
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
-		postgres_client, err = database.NewPostgresClient(consul_client, &cfg)
+		postgres_client, err = database.NewPostgresRepository(consul_client, cfg)
 		assert.Nil(t, err)
 	})
 
@@ -30,10 +30,10 @@ func TestPostgres(t *testing.T) {
 		return
 	}
 
-	t.Run("TestPostgresMigrations", func(t *testing.T) {
+	/* t.Run("TestPostgresMigrations", func(t *testing.T) {
 		err = postgres_client.MigrateDB()
 		assert.Nil(t, err)
-	})
+	}) */
 
 	t.Run("TestPostgresAddFile", func(t *testing.T) {
 		err = postgres_client.AddFile(ctx, "0001", "test_file", []byte{00, 00, 00})

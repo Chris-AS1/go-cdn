@@ -19,12 +19,12 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type Repository struct {
+type PostgresRepository struct {
 	client *sql.DB
 }
 
-func NewPostgresRepo(csl *consul.ConsulClient, cfg *config.Config) (*Repository, error) {
-	repo := &Repository{}
+func NewPostgresRepository(csl *consul.ConsulClient, cfg *config.Config) (*PostgresRepository, error) {
+	repo := &PostgresRepository{}
 	conStr, err := repo.GetConnectionString(csl, cfg)
 	if err != nil {
 		return nil, err
@@ -45,13 +45,13 @@ func NewPostgresRepo(csl *consul.ConsulClient, cfg *config.Config) (*Repository,
 }
 
 // Handle the termination of the connection
-func (r *Repository) CloseConnection() error {
+func (r *PostgresRepository) CloseConnection() error {
 	err := r.client.Close()
 	return err
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (r *Repository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+func (r *PostgresRepository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
 	var err error
 	var address string
 	var port int
@@ -92,7 +92,7 @@ func (r *Repository) GetConnectionString(csl *consul.ConsulClient, cfg *config.C
 }
 
 // Apply all up-migrations under ./migrations
-func (r *Repository) migrateDB() error {
+func (r *PostgresRepository) migrateDB() error {
 	driver, err := postgres.WithInstance(r.client, &postgres.Config{})
 	if err != nil {
 		return err
@@ -113,20 +113,20 @@ func (r *Repository) migrateDB() error {
 }
 
 // Adds the byte stream as file in the database
-func (r *Repository) AddFile(ctx context.Context, id_hash string, filename string, content []byte) error {
+func (r *PostgresRepository) AddFile(ctx context.Context, file *mod.StoredFile) error {
 	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
-	span.SetAttributes(attribute.String("pg.hash", id_hash),
-		attribute.String("pg.filename", filename))
+	span.SetAttributes(attribute.String("pg.hash", file.IDHash),
+		attribute.String("pg.filename", file.Filename))
 	defer span.End()
 
 	con := r.client
 	// hash := utils.RandStringBytes(6)
-	_, err := con.Exec(`INSERT INTO fs_entities (id_hash, filename, content) VALUES ($1, $2, $3)`, id_hash, filename, content)
+	_, err := con.Exec(`INSERT INTO fs_entities (id_hash, filename, content) VALUES ($1, $2, $3)`, file.IDHash, file.Filename, file.Content)
 	return err
 }
 
 // Removes the file from the database, if present
-func (r *Repository) RemoveFile(ctx context.Context, id_hash string) error {
+func (r *PostgresRepository) RemoveFile(ctx context.Context, id_hash string) error {
 	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash))
 	defer span.End()
@@ -137,7 +137,7 @@ func (r *Repository) RemoveFile(ctx context.Context, id_hash string) error {
 }
 
 // Queries the specified file saved on the database
-func (r *Repository) GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error) {
+func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "pgGetFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash_search))
 	defer span.End()
@@ -163,7 +163,7 @@ func (r *Repository) GetFile(ctx context.Context, id_hash_search string) (*mod.S
 }
 
 // Retrieves a list of current files
-func (r *Repository) GetFileList(ctx context.Context) (*[]mod.StoredFile, error) {
+func (r *PostgresRepository) GetFileList(ctx context.Context) (*[]mod.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "pgGetFileList")
 	defer span.End()
 

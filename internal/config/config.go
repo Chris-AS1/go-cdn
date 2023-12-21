@@ -63,7 +63,7 @@ type Telemetry struct {
 	LogMaxAge       int     `mapstructure:"logs_max_age"`
 }
 
-func NewConfig() (Config, error) {
+func New() (*Config, error) {
 	consul_service_id := utils.RandStringBytes(4)
 	cfg := Config{
 		Consul{
@@ -80,7 +80,7 @@ func NewConfig() (Config, error) {
 		cfg.Consul.ConsulServiceAddress = utils.GetLocalIPv4()
 	}
 
-	return cfg, err
+	return &cfg, err
 }
 
 func (cfg *Config) loadFromFile() error {

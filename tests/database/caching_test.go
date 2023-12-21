@@ -11,17 +11,17 @@ import (
 )
 
 func TestRedis(t *testing.T) {
-	var redis_client *database.RedisClient
+	var redis_client *database.RedisRepository
 	ctx := context.Background()
 
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_client, err := consul.NewConsulClient(&cfg)
+	consul_client, err := consul.NewConsulClient(cfg)
 	assert.Nil(t, err)
 
 	t.Run("TestRedisConnection", func(t *testing.T) {
-		redis_client, err = database.NewRedisClient(consul_client, &cfg)
+		redis_client, err = database.NewRedisRepository(consul_client, cfg)
 		assert.Nil(t, err)
 	})
 

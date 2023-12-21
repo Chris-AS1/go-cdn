@@ -6,8 +6,8 @@ import (
 	"go-cdn/internal/config"
 	"go-cdn/internal/consul"
 	"go-cdn/internal/tracing"
+	"go-cdn/pkg/model"
 	"go-cdn/pkg/utils"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -16,20 +16,20 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type RedisClient struct {
-	ctx context.Context
-	rdb *redis.Client
+type RedisRepository struct {
+	ctx    context.Context
+	client *redis.Client
 }
 
-func NewRedisClient(csl *consul.ConsulClient, cfg *config.Config) (*RedisClient, error) {
-	rc := &RedisClient{
+func NewRedisRepository(csl *consul.ConsulClient, cfg *config.Config) (*RedisRepository, error) {
+	rc := &RedisRepository{
 		ctx: context.Background(),
 	}
 	err := rc.connect(csl, cfg)
 	return rc, err
 }
 
-func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+func (rc *RedisRepository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
 	var err error
 	var address string
 	var port int
@@ -53,13 +53,13 @@ func (pg *RedisClient) GetConnectionString(csl *consul.ConsulClient, cfg *config
 
 }
 
-func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) error {
+func (rc *RedisRepository) connect(csl *consul.ConsulClient, cfg *config.Config) error {
 	address, err := rc.GetConnectionString(csl, cfg)
 	if err != nil {
 		return err
 	}
 
-	rc.rdb = redis.NewClient(&redis.Options{
+	rc.client = redis.NewClient(&redis.Options{
 		Addr:         address,
 		Password:     cfg.Redis.RedisPassword,
 		DB:           cfg.Redis.RedisDB,
@@ -67,16 +67,16 @@ func (rc *RedisClient) connect(csl *consul.ConsulClient, cfg *config.Config) err
 		WriteTimeout: 2 * time.Second,
 	})
 
-	_, err = rc.rdb.Ping(rc.ctx).Result()
+	_, err = rc.client.Ping(rc.ctx).Result()
 	return err
 }
 
-func (rc *RedisClient) GetFromCache(ctx context.Context, id_hash string) ([]byte, error) {
+func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.StoredFile, error) {
 	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 
-	result, err := rc.rdb.Get(rc.ctx, id_hash).Bytes()
+	bytes, err := rc.client.Get(rc.ctx, id_hash).Bytes()
 
 	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
 	switch {
@@ -86,34 +86,32 @@ func (rc *RedisClient) GetFromCache(ctx context.Context, id_hash string) ([]byte
 		return nil, err
 	}
 
-	return result, nil
+	return &model.StoredFile{IDHash: id_hash, Filename: "", Content: bytes}, nil
+}
+func (rc *RedisRepository) GetFileList(ctx context.Context) (*[]model.StoredFile, error) {
+	_, span := tracing.Tracer.Start(ctx, "rdGetFromCache")
+    defer span.End()
+	return nil, fmt.Errorf("not implemented")
 }
 
-func (rc *RedisClient) AddToCache(ctx context.Context, id_hash string, content []byte) error {
+func (rc *RedisRepository) AddFile(ctx context.Context, file *model.StoredFile) error {
 	_, span := tracing.Tracer.Start(ctx, "rdAddToCache")
-	span.SetAttributes(attribute.String("rd.hash", id_hash))
+	span.SetAttributes(attribute.String("rd.hash", file.IDHash))
 	defer span.End()
 
-	_, err := rc.rdb.Set(rc.ctx, id_hash, content, 0).Result()
+	_, err := rc.client.Set(rc.ctx, file.IDHash, file.Content, 0).Result()
 	return err
 }
 
-func (rc *RedisClient) RemoveFromCache(ctx context.Context, id_hash string) (int64, error) {
+func (rc *RedisRepository) RemoveFile(ctx context.Context, id_hash string) error {
 	_, span := tracing.Tracer.Start(ctx, "rdRemoveFromCache")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 
-	result, err := rc.rdb.Del(rc.ctx, id_hash).Result()
-	return result, err
+	_, err := rc.client.Del(rc.ctx, id_hash).Result()
+	return err
 }
 
-// Records image access on Redis - Most used cache
-func (rc *RedisClient) RecordAccess(file_id string) int64 {
-
-	result, err := rc.rdb.ZIncrBy(rc.ctx, "zset1", 1, file_id).Result()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	return int64(result)
+func (rc *RedisRepository) CloseConnection() error {
+	return rc.client.Close()
 }

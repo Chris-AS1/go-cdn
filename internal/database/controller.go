@@ -11,7 +11,7 @@ var ErrDatabaseOp = errors.New("error on database operation")
 type databaseRepository interface {
 	GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error)
 	GetFileList(ctx context.Context) (*[]mod.StoredFile, error)
-	AddFile(ctx context.Context, id_hash string, filename string, content []byte) error
+	AddFile(ctx context.Context, file *mod.StoredFile) error
 	RemoveFile(ctx context.Context, id_hash string) error
 	CloseConnection() error
 }
@@ -40,8 +40,8 @@ func (c *Controller) GetFileList(ctx context.Context) (*[]mod.StoredFile, error)
 	return l, nil
 }
 
-func (c *Controller) AddFile(ctx context.Context, id_hash string, filename string, content []byte) error {
-	if err := c.repo.AddFile(ctx, id_hash, filename, content); err != nil {
+func (c *Controller) AddFile(ctx context.Context, file *mod.StoredFile) error {
+	if err := c.repo.AddFile(ctx, file); err != nil {
 		return ErrDatabaseOp
 	}
 	return nil
