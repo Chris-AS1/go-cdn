@@ -28,7 +28,7 @@ func NewRedisRepository(dc *discovery.Controller, cfg *config.Config) (*RedisRep
 }
 
 func (rc *RedisRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
-	address, err := dc.DiscoverService(cfg.Redis.RedisAddress)
+	address, err := dc.DiscoverService(cfg.Cache.RedisAddress)
 	if err != nil {
 		return "", err
 	}
@@ -44,8 +44,8 @@ func (rc *RedisRepository) connect(dc *discovery.Controller, cfg *config.Config)
 
 	rc.client = redis.NewClient(&redis.Options{
 		Addr:         address,
-		Password:     cfg.Redis.RedisPassword,
-		DB:           cfg.Redis.RedisDB,
+		Password:     cfg.Cache.RedisPassword,
+		DB:           cfg.Cache.RedisDB,
 		ReadTimeout:  2 * time.Second,
 		WriteTimeout: 2 * time.Second,
 	})

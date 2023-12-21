@@ -50,13 +50,13 @@ func (r *PostgresRepository) CloseConnection() error {
 
 // Retrieves the connection string. Interrogates Consul if set
 func (r *PostgresRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
-	address, err := dc.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
+	address, err := dc.DiscoverService(cfg.Database.DatabaseAddress)
 	if err != nil {
 		return "", err
 	}
 
 	sslmode := ""
-	switch cfg.DatabaseProvider.DatabaseSSL {
+	switch cfg.Database.DatabaseSSL {
 	case false:
 		sslmode = "disable"
 	case true:
@@ -64,10 +64,10 @@ func (r *PostgresRepository) GetConnectionString(dc *discovery.Controller, cfg *
 	}
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s&connect_timeout=5",
-		cfg.DatabaseProvider.DatabaseUsername,
-		cfg.DatabaseProvider.DatabasePassword,
+		cfg.Database.DatabaseUsername,
+		cfg.Database.DatabasePassword,
 		address,
-		cfg.DatabaseProvider.DatabaseName,
+		cfg.Database.DatabaseName,
 		sslmode,
 	)
 

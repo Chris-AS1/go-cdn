@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"errors"
+	"fmt"
 	"go-cdn/internal/config"
 	"math/rand"
 )
@@ -53,6 +54,9 @@ func (c *Controller) DiscoverService(service_name string) (string, error) {
 	catalog, err := c.repo.DiscoverService(service_name)
 	if err != nil {
 		return "", ErrServiceNotFound
+	}
+	if len(catalog) <= 0 {
+		return "", fmt.Errorf("%s: %s", ErrServiceNotFound, service_name)
 	}
 	return catalog[rand.Intn(len(catalog))], nil
 }

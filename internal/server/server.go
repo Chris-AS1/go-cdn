@@ -181,7 +181,7 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 
 		hash := c.Param("hash")
 
-		if g.Config.Redis.RedisEnable {
+		if g.Config.Cache.RedisEnable {
 			file, err := g.Cache.GetFile(c.Request.Context(), hash)
 			bytes := file.Content
 
@@ -205,7 +205,7 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 		}
 
 		// Asynchronously add to Redis cache
-		if g.Config.Redis.RedisEnable {
+		if g.Config.Cache.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -289,7 +289,7 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 		hash := c.Param("hash")
 
-		if g.Config.Redis.RedisEnable {
+		if g.Config.Cache.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()

@@ -9,70 +9,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	Consul           Consul           `mapstructure:"consul"`
-	Redis            RedisDatabase    `mapstructure:"redis"`
-	DatabaseProvider DatabaseProvider `mapstructure:"postgres"`
-	HTTPServer       HTTPServer       `mapstructure:"http"`
-	Telemetry        Telemetry        `mapstructure:"telemetry"`
-}
-
-type Consul struct {
-	ConsulEnable         bool   `mapstructure:"enable"`
-	ConsulServiceID      string `mapstructure:"service_id"` // Should not be present in configs.yaml. It's randomized for each instance
-	ConsulServiceName    string `mapstructure:"service_name"`
-	ConsulServiceAddress string `mapstructure:"service_address"`
-	ConsulAddress        string `mapstructure:"address"`
-	ConsulDatacenter     string `mapstructure:"datacenter"`
-	ConsulPort           int    `mapstructure:"port"`
-}
-
-type RedisDatabase struct {
-	RedisEnable   bool   `mapstructure:"enable"`
-	RedisAddress  string `mapstructure:"host"`
-	RedisPassword string `mapstructure:"password"`
-	RedisDB       int    `mapstructure:"db"`
-}
-
-type DatabaseProvider struct {
-	DatabaseAddress  string `mapstructure:"host"`
-	DatabaseUsername string `mapstructure:"username"`
-	DatabasePassword string `mapstructure:"password"`
-	DatabaseName     string `mapstructure:"database"`
-	DatabaseSSL      bool   `mapstructure:"ssl"`
-	/* DatabaseColumnID       string
-	DatabaseColumnFilename string */
-}
-
-type HTTPServer struct {
-	DeliveryPort    int    `mapstructure:"port"`
-	ServerSubPath   string `mapstructure:"path"`
-	AllowDeletion   bool   `mapstructure:"allow_delete"`
-	AllowInsertion  bool   `mapstructure:"allow_insert"`
-	RateLimitEnable bool   `mapstructure:"rate_limit_enable"`
-	RateLimit       int    `mapstructure:"rate_limit"`
-}
-
-type Telemetry struct {
-	TelemetryEnable bool    `mapstructure:"enable"`
-	JaegerAddress   string  `mapstructure:"jaeger_address"`
-	Sampling        float64 `mapstructure:"sampling"`
-	LogPath         string  `mapstructure:"logs_path"`
-	LogMaxSize      int     `mapstructure:"logs_max_size"`
-	LogMaxBackups   int     `mapstructure:"logs_max_backups"`
-	LogMaxAge       int     `mapstructure:"logs_max_age"`
-}
-
 func New() (*Config, error) {
 	consul_service_id := utils.RandStringBytes(4)
 	cfg := Config{
-		Consul{
+		Consul: Consul{
 			ConsulServiceID: consul_service_id,
 		},
-		RedisDatabase{RedisEnable: false},
-		DatabaseProvider{DatabaseSSL: false},
-		HTTPServer{DeliveryPort: 3000, RateLimitEnable: false},
-		Telemetry{Sampling: 1, LogPath: "./logs", LogMaxSize: 500, LogMaxBackups: 3, LogMaxAge: 28},
+		Cache:      Cache{RedisEnable: false},
+		Database:   Database{DatabaseSSL: false},
+		HTTPServer: HTTPServer{DeliveryPort: 3000, RateLimitEnable: false},
+		Telemetry:  Telemetry{Sampling: 1, LogPath: "./logs", LogMaxSize: 500, LogMaxBackups: 3, LogMaxAge: 28},
 	}
 
 	err := cfg.loadFromFile()

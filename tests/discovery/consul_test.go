@@ -50,7 +50,6 @@ func TestConsul(t *testing.T) {
 func TestDummy(t *testing.T) {
 	dc := discovery.NewController(discovery.NewDummyRepo())
 
-	// Looks for itself after registering
 	t.Run("TestConsulServiceDiscovery", func(t *testing.T) {
 		full_address, err := dc.DiscoverService("localhost:1234")
 		assert.Nil(t, err)

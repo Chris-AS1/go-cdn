@@ -71,7 +71,7 @@ func main() {
 
 	// Cache Repo
 	var cache *database.Controller
-	if cfg.Redis.RedisEnable {
+	if cfg.Cache.RedisEnable {
 		rd_repo, err := database.NewRedisRepository(dc, cfg)
 		if err != nil {
 			sugar.Panicw("redis repo creation", "err", err)

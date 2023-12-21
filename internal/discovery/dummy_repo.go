@@ -1,8 +1,8 @@
 package discovery
 
-type DummyRepository struct {
-}
+type DummyRepository struct{}
 
+// This implementation is used when the external discovery service is disabled so that addresses are read directly from configs.
 func NewDummyRepo() *DummyRepository {
 	return &DummyRepository{}
 }
