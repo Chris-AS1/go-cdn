@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
+	"go-cdn/internal/discovery"
 	"go-cdn/internal/tracing"
 	"go-cdn/pkg/model"
 	"go-cdn/pkg/utils"
@@ -21,7 +21,7 @@ type RedisRepository struct {
 	client *redis.Client
 }
 
-func NewRedisRepository(csl *consul.ConsulClient, cfg *config.Config) (*RedisRepository, error) {
+func NewRedisRepository(csl *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
 	rc := &RedisRepository{
 		ctx: context.Background(),
 	}
@@ -29,13 +29,13 @@ func NewRedisRepository(csl *consul.ConsulClient, cfg *config.Config) (*RedisRep
 	return rc, err
 }
 
-func (rc *RedisRepository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+func (rc *RedisRepository) GetConnectionString(csl *discovery.Controller, cfg *config.Config) (string, error) {
 	var err error
 	var address string
 	var port int
 	if cfg.Consul.ConsulEnable {
 		// Discovers Redis from Consul
-		address, port, err = csl.DiscoverService(cfg.Redis.RedisAddress)
+		address, err = csl.DiscoverService(cfg.Redis.RedisAddress)
 		if err != nil {
 			return "", err
 		}
@@ -53,7 +53,7 @@ func (rc *RedisRepository) GetConnectionString(csl *consul.ConsulClient, cfg *co
 
 }
 
-func (rc *RedisRepository) connect(csl *consul.ConsulClient, cfg *config.Config) error {
+func (rc *RedisRepository) connect(csl *discovery.Controller, cfg *config.Config) error {
 	address, err := rc.GetConnectionString(csl, cfg)
 	if err != nil {
 		return err

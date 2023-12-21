@@ -11,7 +11,7 @@ import (
 )
 
 func TestInitPipeline(t *testing.T) {
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	assert.Nil(t, err)
 
 	consul_client, err := consul.NewConsulClient(&cfg)

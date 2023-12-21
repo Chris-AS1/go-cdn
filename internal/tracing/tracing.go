@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
+	"go-cdn/internal/discovery"
 	"strconv"
 	"strings"
 
@@ -40,14 +40,14 @@ func newResource() *resource.Resource {
 	)
 }
 
-func InstallExportPipeline(ctx context.Context, csl *consul.ConsulClient, cfg *config.Config) (func(context.Context) error, error) {
+func InstallExportPipeline(ctx context.Context, csl *discovery.Controller, cfg *config.Config) (func(context.Context) error, error) {
 	var err error
 	var address string
 	var port int
 
 	if cfg.Consul.ConsulEnable {
 		// Discovers Jaeger from Consul
-		address, port, err = csl.DiscoverService(cfg.Telemetry.JaegerAddress)
+		address, err = csl.DiscoverService(cfg.Telemetry.JaegerAddress)
 		if err != nil {
 			return nil, err
 		}

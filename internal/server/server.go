@@ -48,6 +48,7 @@ func New(cfg *config.Config, db *database.Controller, cache *database.Controller
 		g.limit = ratelimit.New(g.rps, ratelimit.WithSlack(10))
 		g.Sugar.Infow("using leakyBucket", "rps", g.rps)
 	}
+
 	return g
 }
 

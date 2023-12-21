@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
+	"go-cdn/internal/discovery"
 	"go-cdn/internal/tracing"
 	mod "go-cdn/pkg/model"
 	"strconv"
@@ -23,7 +23,7 @@ type PostgresRepository struct {
 	client *sql.DB
 }
 
-func NewPostgresRepository(csl *consul.ConsulClient, cfg *config.Config) (*PostgresRepository, error) {
+func NewPostgresRepository(csl *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
 	repo := &PostgresRepository{}
 	conStr, err := repo.GetConnectionString(csl, cfg)
 	if err != nil {
@@ -51,14 +51,14 @@ func (r *PostgresRepository) CloseConnection() error {
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (r *PostgresRepository) GetConnectionString(csl *consul.ConsulClient, cfg *config.Config) (string, error) {
+func (r *PostgresRepository) GetConnectionString(csl *discovery.Controller, cfg *config.Config) (string, error) {
 	var err error
 	var address string
 	var port int
 
 	if cfg.Consul.ConsulEnable {
 		// Discovers Postgres from Consul
-		address, port, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
+		address, err = csl.DiscoverService(cfg.DatabaseProvider.DatabaseAddress)
 		if err != nil {
 			return "", err
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
+	"go-cdn/internal/discovery"
 	"go-cdn/internal/database"
 	"go-cdn/internal/logger"
 	"go-cdn/internal/server"
@@ -28,9 +28,9 @@ func main() {
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
 	// Handle Consul Connection/Registration
-	var csl_client *consul.ConsulClient
+	var csl_client *discovery.ConsulRepository
 	if cfg.Consul.ConsulEnable {
-		csl_client, err = consul.NewConsulClient(cfg)
+		csl_client, err = discovery.NewConsulRepo(cfg)
 		if err != nil {
 			sugar.Panicw("consul connection", "err", err)
 		}

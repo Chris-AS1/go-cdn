@@ -31,18 +31,18 @@ func TestRedis(t *testing.T) {
 	}
 
 	t.Run("TestRedisAddToCache", func(t *testing.T) {
-		err = redis_client.AddToCache(ctx, "0001", []byte{00, 00, 00})
+		err = redis_client.AddFile(ctx, "0001", []byte{00, 00, 00})
 		assert.Nil(t, err)
 	})
 
 	t.Run("TestRedisGetFromCache", func(t *testing.T) {
-		bytes, err := redis_client.GetFromCache(ctx, "0001")
+		bytes, err := redis_client.GetFile(ctx, "0001")
 		assert.Nil(t, err)
 		assert.NotNil(t, bytes)
 	})
 
 	t.Run("TestRedisRemoveFromCache", func(t *testing.T) {
-		_, err = redis_client.RemoveFromCache(ctx, "0001")
+		_, err = redis_client.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
 	})
 }

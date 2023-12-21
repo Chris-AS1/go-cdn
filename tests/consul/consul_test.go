@@ -11,7 +11,7 @@ import (
 func TestConsul(t *testing.T) {
 	var consul_client *consul.ConsulClient
 
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	assert.Nil(t, err)
 
 	t.Run("TestConsulConnection", func(t *testing.T) {
