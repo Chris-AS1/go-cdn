@@ -29,17 +29,18 @@ func main() {
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
 	// Handle Service Discovery Connection/Registration
-	dc, err := discovery.BuildControllerFromConfigs(cfg)
+	dc_builder, err := discovery.NewControllerBuilder().FromConfigs(cfg)
 	if err != nil {
-		sugar.Panicw("discovery connection", "err", err)
+		sugar.Panicw("dc builder", "err", err)
 	}
+	dc := dc_builder.Build()
 	if err = dc.RegisterService(); err != nil {
-		sugar.Panicw("discovery service registration", "err", err)
+		sugar.Panicw("dc registration", "err", err)
 	}
 	defer func() {
 		err := dc.DeregisterService()
 		if err != nil {
-			sugar.Panicw("discovery service deregistration", "err", err)
+			sugar.Panicw("dc deregistration", "err", err)
 		}
 	}()
 

@@ -10,22 +10,6 @@ import (
 var ErrServiceNotFound = errors.New("service not found")
 var ErrServiceDisabled = errors.New("discovery service is disabled")
 
-func BuildControllerFromConfigs(cfg *config.Config) (*Controller, error) {
-	if cfg.Consul.ConsulEnable {
-		consul_repo, err := NewConsulRepo(
-			cfg.GetConsulConfig(),
-			cfg.GetServiceDefinition(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return NewController(consul_repo), nil
-	} else {
-		return NewController(NewDummyRepo()), nil
-	}
-}
-
 type discoveryRepository interface {
 	RegisterService() error
 	DeregisterService() error
@@ -59,4 +43,37 @@ func (c *Controller) DiscoverService(service_name string) (string, error) {
 		return "", fmt.Errorf("%s: %s", ErrServiceNotFound, service_name)
 	}
 	return catalog[rand.Intn(len(catalog))], nil
+}
+
+type ControllerBuilder struct {
+	con *Controller
+}
+
+func NewControllerBuilder() *ControllerBuilder {
+	return &ControllerBuilder{}
+}
+
+func (b *ControllerBuilder) SetRepo(repo discoveryRepository) *ControllerBuilder {
+	b.con = NewController(repo)
+	return b
+}
+
+func (b *ControllerBuilder) FromConfigs(cfg *config.Config) (*ControllerBuilder, error) {
+	if cfg.Consul.ConsulEnable {
+		consul_repo, err := NewConsulRepo(
+			cfg.GetConsulConfig(),
+			cfg.GetServiceDefinition(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		b.SetRepo(consul_repo)
+	} else {
+		b.SetRepo(NewDummyRepo())
+	}
+	return b, nil
+}
+
+func (b *ControllerBuilder) Build() *Controller {
+	return b.con
 }
