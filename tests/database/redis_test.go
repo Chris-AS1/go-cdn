@@ -18,8 +18,9 @@ func TestRedis(t *testing.T) {
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	dc, err := discovery.BuildControllerFromConfigs(cfg)
+	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
 	assert.Nil(t, err)
+	dc := dcb.Build()
 
 	t.Run("TestRedisConnection", func(t *testing.T) {
 		redis_repo, err := database.NewRedisRepository(dc, cfg)
@@ -48,7 +49,7 @@ func TestRedis(t *testing.T) {
 		assert.NotNil(t, bytes)
 	})
 
-    // Fetch a nonexistent file
+	// Fetch a nonexistent file
 	t.Run("TestRedisGetFromCache2", func(t *testing.T) {
 		_, err := cache.GetFile(ctx, "0002")
 		assert.NotNil(t, err)

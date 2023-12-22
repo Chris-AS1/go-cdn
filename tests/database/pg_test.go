@@ -18,8 +18,9 @@ func TestPostgres(t *testing.T) {
 	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	dc, err := discovery.BuildControllerFromConfigs(cfg)
+	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
 	assert.Nil(t, err)
+    dc := dcb.Build()
 
 	t.Run("TestPostgresConnection", func(t *testing.T) {
 		pg_repo, err := database.NewPostgresRepository(dc, cfg)
