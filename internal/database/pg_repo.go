@@ -23,7 +23,7 @@ type PostgresRepository struct {
 
 func NewPostgresRepository(dc *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
 	repo := &PostgresRepository{}
-	conStr, err := repo.GetConnectionString(dc, cfg)
+	conStr, err := repo.getConnectionString(dc, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (r *PostgresRepository) CloseConnection() error {
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (r *PostgresRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
+func (r *PostgresRepository) getConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
 	address, err := dc.DiscoverService(cfg.Database.DatabaseAddress)
 	if err != nil {
 		return "", err
@@ -142,7 +142,7 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 		}
 	}
 
-	return &mod.StoredFile{id_hash, filename, content}, err
+	return &mod.StoredFile{IDHash: id_hash, Filename: filename, Content: content}, err
 }
 
 // Retrieves a list of current files
