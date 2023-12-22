@@ -15,7 +15,7 @@ func TestConsul(t *testing.T) {
 
 	consul_repo, err := discovery.NewConsulRepo(
 		cfg.GetConsulConfig(),
-		cfg.GetServiceDefinition(),
+		cfg.GetConsulServiceDefinition(),
 	)
 	assert.Nil(t, err)
 

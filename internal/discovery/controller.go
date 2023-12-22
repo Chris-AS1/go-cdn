@@ -62,7 +62,7 @@ func (b *ControllerBuilder) FromConfigs(cfg *config.Config) (*ControllerBuilder,
 	if cfg.Consul.ConsulEnable {
 		consul_repo, err := NewConsulRepo(
 			cfg.GetConsulConfig(),
-			cfg.GetServiceDefinition(),
+			cfg.GetConsulServiceDefinition(),
 		)
 		if err != nil {
 			return nil, err

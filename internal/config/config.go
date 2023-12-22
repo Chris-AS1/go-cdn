@@ -46,7 +46,7 @@ func (cfg *Config) loadFromFile() error {
 	return err
 }
 
-func (cfg *Config) GetServiceDefinition() *capi.AgentServiceRegistration {
+func (cfg *Config) GetConsulServiceDefinition() *capi.AgentServiceRegistration {
 	csl := cfg.Consul
 	return &capi.AgentServiceRegistration{
 		ID:      csl.ConsulServiceID,
