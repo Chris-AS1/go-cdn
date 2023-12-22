@@ -7,6 +7,7 @@ import (
 )
 
 var ErrDatabaseOp = errors.New("error on database operation")
+var ErrKeyDoesNotExist = errors.New("key does not exist")
 
 type databaseRepository interface {
 	GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error)

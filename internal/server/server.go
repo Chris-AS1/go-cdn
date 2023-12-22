@@ -228,7 +228,7 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 		// TODO differentiate between errors and file already present
 		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
-		if err != nil && !errors.Is(err, model.ErrKeyDoesNotExist) || stored.Content != nil {
+		if err != nil && !errors.Is(err, database.ErrKeyDoesNotExist) || stored.Content != nil {
 			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
 			String(c, http.StatusInternalServerError, "error")
 		} else {

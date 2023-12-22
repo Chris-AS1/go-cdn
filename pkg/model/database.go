@@ -1,10 +1,6 @@
 package model
 
-import "errors"
-
 type DatabaseType string
-
-var ErrKeyDoesNotExist = errors.New("key does not exist")
 
 const (
 	DatabaseTypePostgres = DatabaseType("postgres")

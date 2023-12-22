@@ -67,7 +67,7 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
 	switch {
 	case err == redis.Nil:
-		return nil, model.ErrKeyDoesNotExist
+		return nil, ErrKeyDoesNotExist
 	case err != nil:
 		return nil, err
 	}
