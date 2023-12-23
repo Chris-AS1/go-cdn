@@ -3,7 +3,7 @@ package tracing_test
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/internal/tracing"
 	"testing"
 

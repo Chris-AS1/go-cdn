@@ -3,8 +3,10 @@ package database
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository"
+	"go-cdn/internal/database/repository/redis"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/pkg/model"
 	"testing"
 
@@ -22,8 +24,8 @@ func TestRedis(t *testing.T) {
 	assert.Nil(t, err)
 	dc := dcb.Build()
 
-	t.Run("TestRedisConnection", func(t *testing.T) {
-		redis_repo, err := database.NewRedisRepository(dc, cfg)
+	t.Run("TestConnection", func(t *testing.T) {
+		redis_repo, err := redis.NewRedisRepository(dc, cfg)
 		cache = database.NewController(redis_repo)
 		assert.Nil(t, err)
 	})
@@ -33,7 +35,7 @@ func TestRedis(t *testing.T) {
 		return
 	}
 
-	t.Run("TestRedisAddToCache", func(t *testing.T) {
+	t.Run("TestAddFile", func(t *testing.T) {
 		test_file := &model.StoredFile{
 			IDHash:   "0001",
 			Filename: "test",
@@ -43,19 +45,21 @@ func TestRedis(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("TestRedisGetFromCache", func(t *testing.T) {
-		bytes, err := cache.GetFile(ctx, "0001")
+	t.Run("TestGetFile", func(t *testing.T) {
+		stored_test_file, err := cache.GetFile(ctx, "0001")
 		assert.Nil(t, err)
-		assert.NotNil(t, bytes)
+		assert.Equal(t, "0001", stored_test_file.IDHash)
+		// filename is not stored
+		assert.NotNil(t, stored_test_file.Content)
 	})
 
 	// Fetch a nonexistent file
-	t.Run("TestRedisGetFromCache2", func(t *testing.T) {
+	t.Run("TestGetFileNotFound", func(t *testing.T) {
 		_, err := cache.GetFile(ctx, "0002")
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, repository.ErrKeyDoesNotExist)
 	})
 
-	t.Run("TestRedisRemoveFromCache", func(t *testing.T) {
+	t.Run("TestRemoveFile", func(t *testing.T) {
 		err = cache.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
 	})

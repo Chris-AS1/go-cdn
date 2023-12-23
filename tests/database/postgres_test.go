@@ -3,8 +3,10 @@ package database
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository"
+	"go-cdn/internal/database/repository/postgres"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/pkg/model"
 	"testing"
 
@@ -20,10 +22,10 @@ func TestPostgres(t *testing.T) {
 
 	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
 	assert.Nil(t, err)
-    dc := dcb.Build()
+	dc := dcb.Build()
 
-	t.Run("TestPostgresConnection", func(t *testing.T) {
-		pg_repo, err := database.NewPostgresRepository(dc, cfg)
+	t.Run("TestConnection", func(t *testing.T) {
+		pg_repo, err := postgres.NewPostgresRepository(dc, cfg)
 		db = database.NewController(pg_repo)
 		assert.Nil(t, err)
 	})
@@ -33,7 +35,7 @@ func TestPostgres(t *testing.T) {
 		return
 	}
 
-	t.Run("TestPostgresAddFile", func(t *testing.T) {
+	t.Run("TestAddFile", func(t *testing.T) {
 		test_file := &model.StoredFile{
 			IDHash:   "0001",
 			Filename: "test",
@@ -43,18 +45,21 @@ func TestPostgres(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("TestPostgresGetFile", func(t *testing.T) {
-		_, err = db.GetFile(ctx, "0001")
+	t.Run("TestGetFile", func(t *testing.T) {
+		stored_test_file, err := db.GetFile(ctx, "0001")
 		assert.Nil(t, err)
+		assert.Equal(t, "0001", stored_test_file.IDHash)
+		assert.Equal(t, "test", stored_test_file.Filename)
+		assert.NotNil(t, stored_test_file.Content)
 	})
 
-    // Fetch a nonexistent file
-	t.Run("TestPostgresGetFile2", func(t *testing.T) {
+	// Fetch a nonexistent file
+	t.Run("TestGetFileNotFound", func(t *testing.T) {
 		_, err = db.GetFile(ctx, "0002")
-		assert.Nil(t, err)
+		assert.ErrorIs(t, err, repository.ErrKeyDoesNotExist)
 	})
 
-	t.Run("TestPostgresRemoveFile", func(t *testing.T) {
+	t.Run("TestRemoveFile", func(t *testing.T) {
 		err = db.RemoveFile(ctx, "0001")
 		assert.Nil(t, err)
 	})
