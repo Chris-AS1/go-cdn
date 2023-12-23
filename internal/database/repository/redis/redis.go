@@ -1,10 +1,11 @@
-package database
+package redis
 
 import (
 	"context"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/database/repository"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/internal/tracing"
 	"go-cdn/pkg/model"
 	"time"
@@ -67,7 +68,7 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 	// Documentation at https://redis.uptrace.dev/guide/go-redis.html#redis-nil
 	switch {
 	case err == redis.Nil:
-		return nil, ErrKeyDoesNotExist
+		return nil, repository.ErrKeyDoesNotExist
 	case err != nil:
 		return nil, err
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/discovery/controller"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"

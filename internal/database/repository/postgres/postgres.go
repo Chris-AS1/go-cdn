@@ -1,4 +1,4 @@
-package database
+package postgres
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/database/repository"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/internal/tracing"
 	mod "go-cdn/pkg/model"
 
@@ -132,14 +133,19 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 	}
 	defer rows.Close()
 
+    scanned := false
 	var id int
 	var id_hash string
 	var filename string
 	var content []byte
 	for rows.Next() {
-		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil {
+		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil { // Check
 			return nil, err
 		}
+        scanned = true
+	}
+	if !scanned{
+		return nil, repository.ErrKeyDoesNotExist
 	}
 
 	return &mod.StoredFile{IDHash: id_hash, Filename: filename, Content: content}, err

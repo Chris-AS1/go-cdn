@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
-	"go-cdn/internal/discovery"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository/postgres"
+	"go-cdn/internal/database/repository/redis"
+	"go-cdn/internal/discovery/controller"
+	"go-cdn/internal/discovery/repository"
 	"go-cdn/internal/logger"
 	"go-cdn/internal/server"
 	"go-cdn/internal/tracing"
@@ -35,12 +39,20 @@ func main() {
 	}
 	dc := dc_builder.Build()
 	if err = dc.RegisterService(); err != nil {
-		sugar.Panicw("dc registration", "err", err)
+		if errors.Is(err, repository.ErrServiceDisabled) {
+			sugar.Errorw("dc registration", "err", err)
+		} else {
+			sugar.Panicw("dc registration", "err", err)
+		}
 	}
 	defer func() {
 		err := dc.DeregisterService()
 		if err != nil {
-			sugar.Panicw("dc deregistration", "err", err)
+			if errors.Is(err, repository.ErrServiceDisabled) {
+				sugar.Errorw("dc deregistration", "err", err)
+			} else {
+				sugar.Panicw("dc deregistration", "err", err)
+			}
 		}
 	}()
 
@@ -63,7 +75,7 @@ func main() {
 	}
 
 	// DB Repo
-	pg_repo, err := database.NewPostgresRepository(dc, cfg)
+	pg_repo, err := postgres.NewPostgresRepository(dc, cfg)
 	if err != nil {
 		sugar.Panicw("database repo creation", "err", err)
 	}
@@ -73,7 +85,7 @@ func main() {
 	// Cache Repo
 	var cache *database.Controller
 	if cfg.Cache.RedisEnable {
-		rd_repo, err := database.NewRedisRepository(dc, cfg)
+		rd_repo, err := redis.NewRedisRepository(dc, cfg)
 		if err != nil {
 			sugar.Panicw("redis repo creation", "err", err)
 		}

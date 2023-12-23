@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository"
 	"go-cdn/internal/tracing"
 	"go-cdn/pkg/model"
 	"go-cdn/pkg/utils"
@@ -228,7 +229,7 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 		// TODO differentiate between errors and file already present
 		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
-		if err != nil && !errors.Is(err, database.ErrKeyDoesNotExist) || stored.Content != nil {
+		if err != nil && !errors.Is(err, repository.ErrKeyDoesNotExist) || stored.Content != nil {
 			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
 			String(c, http.StatusInternalServerError, "error")
 		} else {
