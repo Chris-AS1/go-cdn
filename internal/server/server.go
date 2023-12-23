@@ -110,7 +110,7 @@ func (g *GinServer) leakBucket() gin.HandlerFunc {
 }
 
 func (g *GinServer) Spawn(opts ...OptFunc) {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	stop_ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Apply optional values
@@ -156,16 +156,16 @@ func (g *GinServer) Spawn(opts ...OptFunc) {
 	}()
 
 	// Listen for the interrupt signal.
-	<-ctx.Done()
+	<-stop_ctx.Done()
 
 	// Restore default behavior on the interrupt signal and notify user of shutdown.
 	stop()
 	g.Sugar.Info("shutting down gracefully, press Ctrl+C again to force")
 
 	// The context is used to inform the server it has 5 seconds to finish the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop_ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(stop_ctx); err != nil {
 		g.Sugar.Panicw("server forced to shutdown", "err", err)
 	}
 }
@@ -173,7 +173,7 @@ func (g *GinServer) Spawn(opts ...OptFunc) {
 // GET handler to retrieve an image
 func (g *GinServer) getFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "gin/getFileHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
 		defer span.End()
 
@@ -222,14 +222,14 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 // POST handler to add an image
 func (g *GinServer) postFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, span := tracing.Tracer.Start(c.Request.Context(), "postFileHandler")
+		_, span := tracing.Tracer.Start(c.Request.Context(), "gin/postFileHandler")
 		defer span.End()
 
 		hash := utils.RandStringBytes(6)
 		// TODO differentiate between errors and file already present
 		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
-		if err != nil && !errors.Is(err, repository.ErrKeyDoesNotExist) || stored.Content != nil {
+		if err != nil && !errors.Is(err, repository.ErrKeyDoesNotExist) {
 			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
 			String(c, http.StatusInternalServerError, "error")
 		} else {
@@ -283,7 +283,7 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 // DELETE handler to remove an image. Doesn't return an HTTP error by design
 func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, span := tracing.Tracer.Start(c.Request.Context(), "deleteFileHandler")
+		_, span := tracing.Tracer.Start(c.Request.Context(), "gin/deleteFileHandler")
 		defer span.End()
 
 		// Setup error propagation
@@ -317,7 +317,7 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 // GET handler to retrieve a list of currently stored files
 func (g *GinServer) getFileListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileListHandler")
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "gin/getFileListHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
 		defer span.End()
 

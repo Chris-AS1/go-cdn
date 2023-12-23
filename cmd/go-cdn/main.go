@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database/controller"
+	database "go-cdn/internal/database/controller"
 	"go-cdn/internal/database/repository/postgres"
 	"go-cdn/internal/database/repository/redis"
-	"go-cdn/internal/discovery/controller"
+	discovery "go-cdn/internal/discovery/controller"
 	"go-cdn/internal/discovery/repository"
 	"go-cdn/internal/logger"
 	"go-cdn/internal/server"
@@ -27,7 +27,7 @@ func main() {
 
 	// Print loaded configs after logger initialization
 	if err != nil {
-		sugar.Panicw("config load", "err", err)
+		sugar.Errorw("config load", "err", err)
 	}
 	dbg, _ := json.Marshal(cfg)
 	sugar.Infow("config load", "config", string(dbg), "err", err)
@@ -38,58 +38,62 @@ func main() {
 		sugar.Panicw("dc builder", "err", err)
 	}
 	dc := dc_builder.Build()
+
 	if err = dc.RegisterService(); err != nil {
-		if errors.Is(err, repository.ErrServiceDisabled) {
-			sugar.Errorw("dc registration", "err", err)
-		} else {
+		if !errors.Is(err, repository.ErrServiceDisabled) {
 			sugar.Panicw("dc registration", "err", err)
 		}
 	}
 	defer func() {
 		err := dc.DeregisterService()
 		if err != nil {
-			if errors.Is(err, repository.ErrServiceDisabled) {
+			if !errors.Is(err, repository.ErrServiceDisabled) {
 				sugar.Errorw("dc deregistration", "err", err)
-			} else {
-				sugar.Panicw("dc deregistration", "err", err)
 			}
 		}
 	}()
 
-	// Jaeger/OTEL
+	// Tracing Setup
+	var mctx context.Context
 	if cfg.Telemetry.TelemetryEnable {
-		trace_ctx := context.Background()
-		shutdown, err := tracing.InstallExportPipeline(trace_ctx, dc, cfg)
+		tctx := context.Background()
+		shutdown, err := tracing.InstallExportPipeline(tctx, dc, cfg)
 		if err != nil {
 			sugar.Panicw("jaeger/otel setup", "err", err)
 		}
 		defer func() {
-			if err := shutdown(trace_ctx); err != nil {
+			if err := shutdown(tctx); err != nil {
 				sugar.Panicw("jaeger/otel close", "err", err)
 			}
 		}()
 
 		// Main span trace
-		_, span := tracing.Tracer.Start(trace_ctx, "main")
+		local_mctx, span := tracing.Tracer.Start(tctx, "main")
 		defer span.End()
+		mctx = local_mctx
+	}
+
+	// That's a workaround in the case telemetry is disabled. It will attempt to connect to DefaultCollectorHost.
+	if mctx == nil {
+		mctx = context.Background()
 	}
 
 	// DB Repo
-	pg_repo, err := postgres.NewPostgresRepository(dc, cfg)
+	pg_repo, err := postgres.New(mctx, dc, cfg)
 	if err != nil {
 		sugar.Panicw("database repo creation", "err", err)
 	}
-	db := database.NewController(pg_repo)
+	db := database.New(pg_repo)
 	defer db.Close()
 
 	// Cache Repo
 	var cache *database.Controller
 	if cfg.Cache.RedisEnable {
-		rd_repo, err := redis.NewRedisRepository(dc, cfg)
+		rd_repo, err := redis.New(mctx, dc, cfg)
 		if err != nil {
 			sugar.Panicw("redis repo creation", "err", err)
 		}
-		cache = database.NewController(rd_repo)
+		cache = database.New(rd_repo)
 	}
 
 	// Gin Setup

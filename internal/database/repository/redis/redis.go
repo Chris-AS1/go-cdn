@@ -19,21 +19,15 @@ type RedisRepository struct {
 	client *redis.Client
 }
 
-func NewRedisRepository(dc *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
+func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
+	_, span := tracing.Tracer.Start(ctx, "rd/New")
+	defer span.End()
+
 	rc := &RedisRepository{
 		ctx: context.Background(),
 	}
 	err := rc.connect(dc, cfg)
 	return rc, err
-}
-
-func (rc *RedisRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
-	address, err := dc.DiscoverService(cfg.Cache.RedisAddress)
-	if err != nil {
-		return "", err
-	}
-
-	return address, nil
 }
 
 func (rc *RedisRepository) connect(dc *discovery.Controller, cfg *config.Config) error {
@@ -58,8 +52,17 @@ func (rc *RedisRepository) CloseConnection() error {
 	return rc.client.Close()
 }
 
+func (rc *RedisRepository) GetConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
+	address, err := dc.DiscoverService(cfg.Cache.RedisAddress)
+	if err != nil {
+		return "", err
+	}
+
+	return address, nil
+}
+
 func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "rdGetFile")
+	_, span := tracing.Tracer.Start(ctx, "rd/GetFile")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 
@@ -76,13 +79,13 @@ func (rc *RedisRepository) GetFile(ctx context.Context, id_hash string) (*model.
 	return &model.StoredFile{IDHash: id_hash, Filename: "", Content: bytes}, nil
 }
 func (rc *RedisRepository) GetFileList(ctx context.Context) (*[]model.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "rdGetFileList")
+	_, span := tracing.Tracer.Start(ctx, "rd/GetFileList")
 	defer span.End()
 	return nil, fmt.Errorf("not implemented")
 }
 
 func (rc *RedisRepository) AddFile(ctx context.Context, file *model.StoredFile) error {
-	_, span := tracing.Tracer.Start(ctx, "rdAddFile")
+	_, span := tracing.Tracer.Start(ctx, "rd/AddFile")
 	span.SetAttributes(attribute.String("rd.hash", file.IDHash))
 	defer span.End()
 
@@ -91,7 +94,7 @@ func (rc *RedisRepository) AddFile(ctx context.Context, file *model.StoredFile) 
 }
 
 func (rc *RedisRepository) RemoveFile(ctx context.Context, id_hash string) error {
-	_, span := tracing.Tracer.Start(ctx, "rdRemoveFile")
+	_, span := tracing.Tracer.Start(ctx, "rd/RemoveFile")
 	span.SetAttributes(attribute.String("rd.hash", id_hash))
 	defer span.End()
 

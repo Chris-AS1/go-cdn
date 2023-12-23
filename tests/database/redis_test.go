@@ -25,8 +25,8 @@ func TestRedis(t *testing.T) {
 	dc := dcb.Build()
 
 	t.Run("TestConnection", func(t *testing.T) {
-		redis_repo, err := redis.NewRedisRepository(dc, cfg)
-		cache = database.NewController(redis_repo)
+		redis_repo, err := redis.New(dc, cfg)
+		cache = database.New(redis_repo)
 		assert.Nil(t, err)
 	})
 

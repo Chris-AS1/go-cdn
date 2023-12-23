@@ -25,8 +25,8 @@ func TestPostgres(t *testing.T) {
 	dc := dcb.Build()
 
 	t.Run("TestConnection", func(t *testing.T) {
-		pg_repo, err := postgres.NewPostgresRepository(dc, cfg)
-		db = database.NewController(pg_repo)
+		pg_repo, err := postgres.New(dc, cfg)
+		db = database.New(pg_repo)
 		assert.Nil(t, err)
 	})
 

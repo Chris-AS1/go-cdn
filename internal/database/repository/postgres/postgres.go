@@ -22,7 +22,10 @@ type PostgresRepository struct {
 	client *sql.DB
 }
 
-func NewPostgresRepository(dc *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
+func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
+	_, span := tracing.Tracer.Start(ctx, "pg/New")
+	defer span.End()
+
 	repo := &PostgresRepository{}
 	conStr, err := repo.getConnectionString(dc, cfg)
 	if err != nil {
@@ -98,7 +101,7 @@ func (r *PostgresRepository) migrateDB() error {
 
 // Adds the byte stream as file in the database
 func (r *PostgresRepository) AddFile(ctx context.Context, file *mod.StoredFile) error {
-	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
+	_, span := tracing.Tracer.Start(ctx, "pg/AddFile")
 	span.SetAttributes(attribute.String("pg.hash", file.IDHash),
 		attribute.String("pg.filename", file.Filename))
 	defer span.End()
@@ -111,7 +114,7 @@ func (r *PostgresRepository) AddFile(ctx context.Context, file *mod.StoredFile) 
 
 // Removes the file from the database, if present
 func (r *PostgresRepository) RemoveFile(ctx context.Context, id_hash string) error {
-	_, span := tracing.Tracer.Start(ctx, "pgAddFile")
+	_, span := tracing.Tracer.Start(ctx, "pg/RemoveFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash))
 	defer span.End()
 
@@ -122,7 +125,7 @@ func (r *PostgresRepository) RemoveFile(ctx context.Context, id_hash string) err
 
 // Queries the specified file saved on the database
 func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string) (*mod.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "pgGetFile")
+	_, span := tracing.Tracer.Start(ctx, "pg/GetFile")
 	span.SetAttributes(attribute.String("pg.hash", id_hash_search))
 	defer span.End()
 
@@ -133,18 +136,18 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 	}
 	defer rows.Close()
 
-    scanned := false
+	scanned := false
 	var id int
 	var id_hash string
 	var filename string
 	var content []byte
 	for rows.Next() {
-		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil { // Check
+		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil {
 			return nil, err
 		}
-        scanned = true
+		scanned = true
 	}
-	if !scanned{
+	if !scanned {
 		return nil, repository.ErrKeyDoesNotExist
 	}
 
@@ -153,7 +156,7 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 
 // Retrieves a list of current files
 func (r *PostgresRepository) GetFileList(ctx context.Context) (*[]mod.StoredFile, error) {
-	_, span := tracing.Tracer.Start(ctx, "pgGetFileList")
+	_, span := tracing.Tracer.Start(ctx, "pg/GetFileList")
 	defer span.End()
 
 	con := r.client
