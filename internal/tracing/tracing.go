@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
-	"strconv"
-	"strings"
+	"go-cdn/internal/discovery/controller"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -40,29 +38,15 @@ func newResource() *resource.Resource {
 	)
 }
 
-func InstallExportPipeline(ctx context.Context, csl *consul.ConsulClient, cfg *config.Config) (func(context.Context) error, error) {
-	var err error
-	var address string
-	var port int
-
-	if cfg.Consul.ConsulEnable {
-		// Discovers Jaeger from Consul
-		address, port, err = csl.DiscoverService(cfg.Telemetry.JaegerAddress)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		cfg_adr := strings.Split(cfg.Telemetry.JaegerAddress, ":")
-		if len(cfg_adr) != 2 {
-			return nil, fmt.Errorf("wrong address format")
-		}
-		address = cfg_adr[0]
-		port, _ = strconv.Atoi(cfg_adr[1])
+func InstallExportPipeline(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (func(context.Context) error, error) {
+	address, err := dc.DiscoverService(cfg.Telemetry.JaegerAddress)
+	if err != nil {
+		return nil, err
 	}
 
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithInsecure(),
-		otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", address, port)))
+		otlptracehttp.WithEndpoint(address))
 
 	if err != nil {
 		return nil, fmt.Errorf("creating OTLP trace exporter: %w", err)

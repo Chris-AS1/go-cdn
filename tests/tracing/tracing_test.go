@@ -3,7 +3,7 @@ package tracing_test
 import (
 	"context"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
+	"go-cdn/internal/discovery/controller"
 	"go-cdn/internal/tracing"
 	"testing"
 
@@ -11,15 +11,15 @@ import (
 )
 
 func TestInitPipeline(t *testing.T) {
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	assert.Nil(t, err)
 
-	consul_client, err := consul.NewConsulClient(&cfg)
+	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
 	assert.Nil(t, err)
-
+	dc := dcb.Build()
 	ctx := context.Background()
 
-	shutdown, err := tracing.InstallExportPipeline(ctx, consul_client, &cfg)
+	shutdown, err := tracing.InstallExportPipeline(ctx, dc, cfg)
 	defer func() {
 		err := shutdown(ctx)
 		assert.Nil(t, err)

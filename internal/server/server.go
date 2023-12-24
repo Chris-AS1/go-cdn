@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-cdn/internal/config"
-	"go-cdn/internal/database"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository"
 	"go-cdn/internal/tracing"
+	"go-cdn/pkg/model"
 	"go-cdn/pkg/utils"
 	"io"
 	"net/http"
@@ -25,12 +28,30 @@ import (
 )
 
 type GinServer struct {
-	Config      *config.Config
-	RedisClient *database.RedisClient
-	PgClient    *database.PostgresClient
-	Sugar       *zap.SugaredLogger
-	limit       ratelimit.Limiter
-	rps         int
+	Config *config.Config
+	Cache  *database.Controller
+	DB     *database.Controller
+	Sugar  *zap.SugaredLogger
+	limit  ratelimit.Limiter
+	rps    int
+}
+
+func New(cfg *config.Config, db *database.Controller, cache *database.Controller, sugar *zap.SugaredLogger) *GinServer {
+	g := &GinServer{
+		Config: cfg,
+		Cache:  cache,
+		DB:     db,
+		Sugar:  sugar,
+	}
+
+	if g.Config.HTTPServer.RateLimitEnable {
+		g.rps = g.Config.HTTPServer.RateLimit
+		// The rate limiter gets applied on *concurrent* requests, to change the behavior use WithoutSlack
+		g.limit = ratelimit.New(g.rps, ratelimit.WithSlack(10))
+		g.Sugar.Infow("using leakyBucket", "rps", g.rps)
+	}
+
+	return g
 }
 
 func (g *GinServer) requestMetadataMiddleware() gin.HandlerFunc {
@@ -88,17 +109,18 @@ func (g *GinServer) leakBucket() gin.HandlerFunc {
 	}
 }
 
-func (g *GinServer) Spawn() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+func (g *GinServer) Spawn(opts ...OptFunc) {
+	stop_ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Apply optional values
+	for _, opt := range opts {
+		opt()
+	}
 
 	r := gin.Default()
 
 	if g.Config.HTTPServer.RateLimitEnable {
-		g.rps = g.Config.HTTPServer.RateLimit
-		// The rate limiter gets applied on *concurrent* requests, to change the behavior use WithoutSlack
-		g.limit = ratelimit.New(g.rps, ratelimit.WithSlack(10))
-		g.Sugar.Infow("using leakyBucket", "rps", g.rps)
 		r.Use(g.leakBucket())
 	}
 
@@ -134,16 +156,16 @@ func (g *GinServer) Spawn() {
 	}()
 
 	// Listen for the interrupt signal.
-	<-ctx.Done()
+	<-stop_ctx.Done()
 
 	// Restore default behavior on the interrupt signal and notify user of shutdown.
 	stop()
 	g.Sugar.Info("shutting down gracefully, press Ctrl+C again to force")
 
 	// The context is used to inform the server it has 5 seconds to finish the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop_ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(stop_ctx); err != nil {
 		g.Sugar.Panicw("server forced to shutdown", "err", err)
 	}
 }
@@ -151,7 +173,7 @@ func (g *GinServer) Spawn() {
 // GET handler to retrieve an image
 func (g *GinServer) getFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileHandler")
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "gin/getFileHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
 		defer span.End()
 
@@ -161,34 +183,34 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 
 		hash := c.Param("hash")
 
-		if g.Config.Redis.RedisEnable {
-			bytes, err := g.RedisClient.GetFromCache(c.Request.Context(), hash)
-
+		if g.Config.Cache.RedisEnable {
+			cached_file, err := g.Cache.GetFile(c.Request.Context(), hash)
 			// Cache miss, the request is still good
 			if err != nil {
-				g.Sugar.Infow("redis cache miss", "err", err)
-				err_ch <- err // Only with a buffered ch
-			}
-			if bytes != nil {
-				Data(c, http.StatusOK, "image", bytes)
-				return
+				g.Sugar.Infow("cache miss", "err", err)
+				err_ch <- err // Only works with a buffered ch
+			} else {
+				bytes := cached_file.Content
+				if bytes != nil {
+					Data(c, http.StatusOK, "image", bytes)
+					return
+				}
 			}
 		}
 
-		stored_file, err := g.PgClient.GetFile(c.Request.Context(), hash)
+		stored_file, err := g.DB.GetFile(c.Request.Context(), hash)
 		if err != nil {
-			g.Sugar.Errorw("postgres file miss", "err", err)
-
+			g.Sugar.Errorw("db file miss", "err", err)
 			String(c, http.StatusBadRequest, "")
 			return
 		}
 
 		// Asynchronously add to Redis cache
-		if g.Config.Redis.RedisEnable {
+		if g.Config.Cache.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := g.RedisClient.AddToCache(c.Request.Context(), hash, stored_file.Content)
+				err := g.Cache.AddFile(c.Request.Context(), stored_file)
 				err_ch <- err
 			}()
 		}
@@ -200,15 +222,16 @@ func (g *GinServer) getFileHandler() gin.HandlerFunc {
 // POST handler to add an image
 func (g *GinServer) postFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, span := tracing.Tracer.Start(c.Request.Context(), "postFileHandler")
+		_, span := tracing.Tracer.Start(c.Request.Context(), "gin/postFileHandler")
 		defer span.End()
 
 		hash := utils.RandStringBytes(6)
-		_, err := g.PgClient.GetFile(c.Request.Context(), hash)
+		// TODO differentiate between errors and file already present
+		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
-		if err != nil {
-			g.Sugar.Infow("hash already set", "err", err)
-			String(c, http.StatusForbidden, "Invalid HashName")
+		if err != nil && !errors.Is(err, repository.ErrKeyDoesNotExist) {
+			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
+			String(c, http.StatusInternalServerError, "error")
 		} else {
 			filename := c.PostForm("filename")
 			file, err := c.FormFile("file")
@@ -238,9 +261,14 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 				"bytes", string(bytes)[:6],
 				"err", err)
 
-			err = g.PgClient.AddFile(c.Request.Context(), hash, filename, bytes)
+			err = g.DB.AddFile(c.Request.Context(), &model.StoredFile{
+				IDHash:   hash,
+				Filename: filename,
+				Content:  bytes,
+			})
+
 			if err != nil {
-				g.Sugar.Errorw("postgres add file", "err", err)
+				g.Sugar.Errorw("db add file", "err", err)
 				String(c, http.StatusBadRequest, "")
 				return
 			}
@@ -255,7 +283,7 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 // DELETE handler to remove an image. Doesn't return an HTTP error by design
 func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, span := tracing.Tracer.Start(c.Request.Context(), "deleteFileHandler")
+		_, span := tracing.Tracer.Start(c.Request.Context(), "gin/deleteFileHandler")
 		defer span.End()
 
 		// Setup error propagation
@@ -263,18 +291,18 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 		hash := c.Param("hash")
 
-		if g.Config.Redis.RedisEnable {
+		if g.Config.Cache.RedisEnable {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, err := g.RedisClient.RemoveFromCache(c.Request.Context(), hash)
+				err := g.Cache.RemoveFile(c.Request.Context(), hash)
 				err_ch <- err
 			}()
 		}
 
-		err := g.PgClient.RemoveFile(c.Request.Context(), hash)
+		err := g.DB.RemoveFile(c.Request.Context(), hash)
 		if err != nil {
-			g.Sugar.Errorw("postgres remove file", "err", err)
+			g.Sugar.Errorw("db remove file", "err", err)
 			wg.Add(1)
 			go func(err error) {
 				defer wg.Done()
@@ -289,7 +317,7 @@ func (g *GinServer) deleteFileHandler() gin.HandlerFunc {
 // GET handler to retrieve a list of currently stored files
 func (g *GinServer) getFileListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "getFileListHandler")
+		rq_ctx, span := tracing.Tracer.Start(c.Request.Context(), "gin/getFileListHandler")
 		c.Request = c.Request.WithContext(rq_ctx)
 		defer span.End()
 
@@ -297,9 +325,9 @@ func (g *GinServer) getFileListHandler() gin.HandlerFunc {
 		err_ch := c.MustGet("err_ch").(chan error)
 		wg := c.MustGet("wg").(*sync.WaitGroup)
 
-		file_list, err := g.PgClient.GetFileList(c.Request.Context())
+		file_list, err := g.DB.GetFileList(c.Request.Context())
 		if err != nil {
-			g.Sugar.Errorw("postgres get file list", "err", err)
+			g.Sugar.Errorw("db get file list", "err", err)
 			wg.Add(1)
 			go func(err error) {
 				defer wg.Done()

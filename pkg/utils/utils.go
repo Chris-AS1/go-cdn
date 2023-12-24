@@ -1,12 +1,9 @@
 package utils
 
 import (
-	"errors"
 	"math/rand"
 	"net"
 )
-
-var ErrorRedisKeyDoesNotExist = errors.New("key does not exist")
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

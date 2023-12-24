@@ -3,92 +3,102 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"go-cdn/internal/config"
-	"go-cdn/internal/consul"
-	"go-cdn/internal/database"
+	"go-cdn/internal/database/controller"
+	"go-cdn/internal/database/repository/postgres"
+	"go-cdn/internal/database/repository/redis"
+	"go-cdn/internal/discovery/controller"
+	"go-cdn/internal/discovery/repository"
 	"go-cdn/internal/logger"
 	"go-cdn/internal/server"
 	"go-cdn/internal/tracing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// Yaml Configurations
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
+
 	// Logger (File with rotation + Console)
-	sugar := logger.NewLogger(&cfg)
+	sugar := logger.NewLogger(cfg)
 	defer sugar.Sync()
 
 	// Print loaded configs after logger initialization
 	if err != nil {
-		sugar.Panicw("config load", "err", err)
+		sugar.Errorw("config load", "err", err)
 	}
 	dbg, _ := json.Marshal(cfg)
 	sugar.Infow("config load", "config", string(dbg), "err", err)
 
-	// Handle Consul Connection/Registration
-	var csl_client *consul.ConsulClient
-	if cfg.Consul.ConsulEnable {
-		csl_client, err = consul.NewConsulClient(&cfg)
-		if err != nil {
-			sugar.Panicw("consul connection", "err", err)
-		}
-
-		if err = csl_client.RegisterService(&cfg); err != nil {
-			sugar.Panicw("consul service registration", "err", err)
-		}
-		defer func() {
-			err := csl_client.DeregisterService(&cfg)
-			if err != nil {
-				sugar.Panicw("consul servie deregistration", "err", err)
-			}
-		}()
+	// Handle Service Discovery Connection/Registration
+	dc_builder, err := discovery.NewControllerBuilder().FromConfigs(cfg)
+	if err != nil {
+		sugar.Panicw("dc builder", "err", err)
 	}
+	dc := dc_builder.Build()
 
-	// Jaeger/OTEL
+	if err = dc.RegisterService(); err != nil {
+		if !errors.Is(err, repository.ErrServiceDisabled) {
+			sugar.Panicw("dc registration", "err", err)
+		}
+	}
+	defer func() {
+		err := dc.DeregisterService()
+		if err != nil {
+			if !errors.Is(err, repository.ErrServiceDisabled) {
+				sugar.Errorw("dc deregistration", "err", err)
+			}
+		}
+	}()
+
+	// Tracing Setup
+	var mctx context.Context
 	if cfg.Telemetry.TelemetryEnable {
-		trace_ctx := context.Background()
-		shutdown, err := tracing.InstallExportPipeline(trace_ctx, csl_client, &cfg)
+		tctx := context.Background()
+		shutdown, err := tracing.InstallExportPipeline(tctx, dc, cfg)
 		if err != nil {
 			sugar.Panicw("jaeger/otel setup", "err", err)
 		}
 		defer func() {
-			if err := shutdown(trace_ctx); err != nil {
+			if err := shutdown(tctx); err != nil {
 				sugar.Panicw("jaeger/otel close", "err", err)
 			}
 		}()
 
 		// Main span trace
-		_, span := tracing.Tracer.Start(trace_ctx, "main")
+		local_mctx, span := tracing.Tracer.Start(tctx, "main")
 		defer span.End()
+		mctx = local_mctx
 	}
 
-	// Postgres Connection
-	pg_client, err := database.NewPostgresClient(csl_client, &cfg)
+	// That's a workaround in the case telemetry is disabled. It will attempt to connect to DefaultCollectorHost.
+	if mctx == nil {
+		mctx = context.Background()
+	}
+
+	// DB Repo
+	pg_repo, err := postgres.New(mctx, dc, cfg)
 	if err != nil {
-		sugar.Panicw("postgres connection", "err", err)
+		sugar.Panicw("database repo creation", "err", err)
 	}
-	defer pg_client.CloseConnection()
-	if err = pg_client.MigrateDB(); err != nil {
-		sugar.Panicw("postgres migrations", "err", err)
-	}
+	db := database.New(pg_repo)
+	defer db.Close()
 
-	// Redis Connection
-	var rd_client *database.RedisClient
-	if cfg.Redis.RedisEnable {
-		rd_client, err = database.NewRedisClient(csl_client, &cfg)
+	// Cache Repo
+	var cache *database.Controller
+	if cfg.Cache.RedisEnable {
+		rd_repo, err := redis.New(mctx, dc, cfg)
 		if err != nil {
-			sugar.Panicw("redis connection", "err", err)
+			sugar.Panicw("redis repo creation", "err", err)
 		}
+		cache = database.New(rd_repo)
 	}
 
 	// Gin Setup
-	// gin.SetMode(gin.ReleaseMode) // Release Mode
-	ginServer := &server.GinServer{
-		Config:      &cfg,
-		RedisClient: rd_client,
-		PgClient:    pg_client,
-		Sugar:       sugar,
-	}
-
-	ginServer.Spawn()
+	ginServer := server.New(cfg, db, cache, sugar)
+	ginServer.Spawn(
+		server.WithMode(gin.ReleaseMode),
+	)
 }
