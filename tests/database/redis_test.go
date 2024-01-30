@@ -17,6 +17,8 @@ import (
 	tc_rd "github.com/testcontainers/testcontainers-go/modules/redis"
 )
 
+const TEST_RD_PORT = 6379
+
 type RedisContainer struct {
 	*tc_rd.RedisContainer
 }
@@ -66,7 +68,7 @@ func (suite *RedisRepoTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg.Cache.RedisAddress = fmt.Sprintf("%s:6379", ip)
+	cfg.Cache.RedisAddress = fmt.Sprintf("%s:%d", ip, TEST_RD_PORT)
 
 	// skips the controller
 	repository, err := redis.New(context.TODO(), dc, cfg)
