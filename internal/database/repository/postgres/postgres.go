@@ -42,7 +42,7 @@ func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*Po
 	if err != nil {
 		return nil, err
 	}
-	err = repo.migrateDB()
+	err = repo.migrateDB(ctx)
 	return repo, err
 }
 
@@ -79,7 +79,10 @@ func (r *PostgresRepository) getConnectionString(dc *discovery.Controller, cfg *
 }
 
 // Apply all up-migrations under ./migrations
-func (r *PostgresRepository) migrateDB() error {
+func (r *PostgresRepository) migrateDB(ctx context.Context) error {
+	_, span := tracing.Tracer.Start(ctx, "pg/migrateDB")
+	defer span.End()
+
 	driver, err := postgres.WithInstance(r.client, &postgres.Config{})
 	if err != nil {
 		return err
@@ -136,7 +139,7 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 	}
 	defer rows.Close()
 
-	scanned := false
+	found := false
 	var id int
 	var id_hash string
 	var filename string
@@ -145,9 +148,9 @@ func (r *PostgresRepository) GetFile(ctx context.Context, id_hash_search string)
 		if err := rows.Scan(&id, &id_hash, &filename, &content); err != nil {
 			return nil, err
 		}
-		scanned = true
+		found = true
 	}
-	if !scanned {
+	if !found {
 		return nil, repository.ErrKeyDoesNotExist
 	}
 
