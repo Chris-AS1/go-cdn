@@ -26,11 +26,14 @@ func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*Re
 	rc := &RedisRepository{
 		ctx: context.Background(),
 	}
-	err := rc.connect(dc, cfg)
+	err := rc.connect(ctx, dc, cfg)
 	return rc, err
 }
 
-func (rc *RedisRepository) connect(dc *discovery.Controller, cfg *config.Config) error {
+func (rc *RedisRepository) connect(ctx context.Context, dc *discovery.Controller, cfg *config.Config) error {
+    _, span := tracing.Tracer.Start(ctx, "rd/connect")
+    defer span.End()
+
 	address, err := rc.GetConnectionString(dc, cfg)
 	if err != nil {
 		return err

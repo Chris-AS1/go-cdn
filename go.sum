@@ -344,6 +344,8 @@ github.com/testcontainers/testcontainers-go v0.27.0 h1:IeIrJN4twonTDuMuBNQdKZ+K9
 github.com/testcontainers/testcontainers-go v0.27.0/go.mod h1:+HgYZcd17GshBUZv9b+jKFJ198heWPQq3KQIp2+N+7U=
 github.com/testcontainers/testcontainers-go/modules/postgres v0.27.0 h1:gbA/HYjBIwOwhE/t4p3kIprfI0qsxCk+YVW7P9XFOus=
 github.com/testcontainers/testcontainers-go/modules/postgres v0.27.0/go.mod h1:VFrFKUUgET2hNXStdtaC7uOIJWviFUrixhKeaVw/4F4=
+github.com/testcontainers/testcontainers-go/modules/redis v0.27.0 h1:DAs9D0BmBPuvEnsY8fWLwQVx5ZGdDNJTj+iK+p5Dj98=
+github.com/testcontainers/testcontainers-go/modules/redis v0.27.0/go.mod h1:xkfSzACp1p97x84TpLR8ZDzSimFv8ZP/pIrX8Nhf2gg=
 github.com/tklauser/go-sysconf v0.3.12 h1:0QaGUFOdQaIVdPgfITYzaTegZvdCjmYO52cSFAEVmqU=
 github.com/tklauser/go-sysconf v0.3.12/go.mod h1:Ho14jnntGE1fpdOqQEEaiKRpvIavV0hSfmBq8nJbHYI=
 github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+Fk=
