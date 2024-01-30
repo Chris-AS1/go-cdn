@@ -226,57 +226,57 @@ func (g *GinServer) postFileHandler() gin.HandlerFunc {
 		defer span.End()
 
 		hash := utils.RandStringBytes(6)
-		// TODO differentiate between errors and file already present
 		stored, err := g.DB.GetFile(c.Request.Context(), hash)
 
 		if err != nil && !errors.Is(err, repository.ErrKeyDoesNotExist) {
 			g.Sugar.Errorw("db get file", "stored", stored, "err", err)
 			String(c, http.StatusInternalServerError, "error")
-		} else {
-			filename := c.PostForm("filename")
-			file, err := c.FormFile("file")
-			if err != nil {
-				g.Sugar.Errorw("FormFile", "err", err)
-				String(c, http.StatusBadRequest, "")
-				return
-			}
-
-			stream, err := file.Open()
-			if err != nil {
-				g.Sugar.Errorw("FileOpen", "err", err)
-				String(c, http.StatusBadRequest, "")
-				return
-			}
-			defer stream.Close()
-
-			bytes, err := io.ReadAll(stream)
-			if err != nil {
-				g.Sugar.Errorw("ReadAll", "err", err)
-				String(c, http.StatusBadRequest, "")
-				return
-			}
-
-			g.Sugar.Infow("adding an image",
-				"filename", filename,
-				"bytes", string(bytes)[:6],
-				"err", err)
-
-			err = g.DB.AddFile(c.Request.Context(), &model.StoredFile{
-				IDHash:   hash,
-				Filename: filename,
-				Content:  bytes,
-			})
-
-			if err != nil {
-				g.Sugar.Errorw("db add file", "err", err)
-				String(c, http.StatusBadRequest, "")
-				return
-			}
-
-			JSON(c, http.StatusOK, gin.H{
-				"hash": hash,
-			})
+			return
 		}
+
+		filename := c.PostForm("filename")
+		file, err := c.FormFile("file")
+		if err != nil {
+			g.Sugar.Errorw("FormFile", "err", err)
+			String(c, http.StatusBadRequest, "")
+			return
+		}
+
+		stream, err := file.Open()
+		if err != nil {
+			g.Sugar.Errorw("FileOpen", "err", err)
+			String(c, http.StatusBadRequest, "")
+			return
+		}
+		defer stream.Close()
+
+		bytes, err := io.ReadAll(stream)
+		if err != nil {
+			g.Sugar.Errorw("ReadAll", "err", err)
+			String(c, http.StatusBadRequest, "")
+			return
+		}
+
+		g.Sugar.Infow("adding an image",
+			"filename", filename,
+			"bytes", string(bytes)[:6],
+			"err", err)
+
+		err = g.DB.AddFile(c.Request.Context(), &model.StoredFile{
+			IDHash:   hash,
+			Filename: filename,
+			Content:  bytes,
+		})
+
+		if err != nil {
+			g.Sugar.Errorw("db add file", "err", err)
+			String(c, http.StatusBadRequest, "")
+			return
+		}
+
+		JSON(c, http.StatusOK, gin.H{
+			"hash": hash,
+		})
 	}
 }
 
