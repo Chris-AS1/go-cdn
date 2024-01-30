@@ -9,6 +9,7 @@ import (
 	discovery "go-cdn/internal/discovery/controller"
 	"go-cdn/pkg/model"
 	"log"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,7 @@ type RedisContainer struct {
 func NewRedisContainer(ctx context.Context) (*RedisContainer, error) {
 	redisContainer, err := tc_rd.RunContainer(ctx,
 		testcontainers.WithImage("redis:7-alpine"),
+		tc_rd.WithConfigFile(filepath.Join("./configs/redis.conf")),
 	)
 	if err != nil {
 		return nil, err
