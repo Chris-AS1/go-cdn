@@ -10,6 +10,7 @@ import (
 	"testing"
 )
 
+// TODO port to testcontainers
 func TestConsul(t *testing.T) {
 	cfg, err := config.New()
 	assert.Nil(t, err)
