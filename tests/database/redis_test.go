@@ -48,7 +48,7 @@ type RedisRepoTestSuite struct {
 func (suite *RedisRepoTestSuite) SetupSuite() {
 	cfg, err := config.New()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
