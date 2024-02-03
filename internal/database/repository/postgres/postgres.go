@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go-cdn/internal/config"
 	"go-cdn/internal/database/repository"
-	"go-cdn/internal/discovery/controller"
 	"go-cdn/internal/tracing"
 	mod "go-cdn/pkg/model"
 
@@ -19,15 +18,23 @@ import (
 )
 
 type PostgresRepository struct {
-	client *sql.DB
+	ctx     context.Context
+	client  *sql.DB
+	address string
+	cfg     *config.Config
 }
 
-func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*PostgresRepository, error) {
+// Address is in the format ip:port
+func New(ctx context.Context, address string, cfg *config.Config) (*PostgresRepository, error) {
 	_, span := tracing.Tracer.Start(ctx, "pg/New")
 	defer span.End()
 
-	repo := &PostgresRepository{}
-	conStr, err := repo.getConnectionString(dc, cfg)
+	repo := &PostgresRepository{
+		ctx:     context.Background(),
+		cfg:     cfg,
+		address: address,
+	}
+	conStr, err := repo.getConnectionString()
 	if err != nil {
 		return nil, err
 	}
@@ -53,14 +60,9 @@ func (r *PostgresRepository) CloseConnection() error {
 }
 
 // Retrieves the connection string. Interrogates Consul if set
-func (r *PostgresRepository) getConnectionString(dc *discovery.Controller, cfg *config.Config) (string, error) {
-	address, err := dc.DiscoverService(cfg.Database.DatabaseAddress)
-	if err != nil {
-		return "", err
-	}
-
+func (r *PostgresRepository) getConnectionString() (string, error) {
 	sslmode := ""
-	switch cfg.Database.DatabaseSSL {
+	switch r.cfg.Database.DatabaseSSL {
 	case false:
 		sslmode = "disable"
 	case true:
@@ -68,10 +70,10 @@ func (r *PostgresRepository) getConnectionString(dc *discovery.Controller, cfg *
 	}
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s&connect_timeout=5",
-		cfg.Database.DatabaseUsername,
-		cfg.Database.DatabasePassword,
-		address,
-		cfg.Database.DatabaseName,
+		r.cfg.Database.DatabaseUsername,
+		r.cfg.Database.DatabasePassword,
+		r.address,
+		r.cfg.Database.DatabaseName,
 		sslmode,
 	)
 

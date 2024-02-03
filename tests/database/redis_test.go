@@ -2,13 +2,12 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"go-cdn/internal/config"
 	"go-cdn/internal/database/repository"
 	"go-cdn/internal/database/repository/redis"
-	discovery "go-cdn/internal/discovery/controller"
 	"go-cdn/pkg/model"
 	"log"
+	"net"
 	"path/filepath"
 	"testing"
 
@@ -17,8 +16,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	tc_rd "github.com/testcontainers/testcontainers-go/modules/redis"
 )
-
-const TEST_RD_PORT = 6379
 
 type RedisContainer struct {
 	*tc_rd.RedisContainer
@@ -51,12 +48,6 @@ func (suite *RedisRepoTestSuite) SetupSuite() {
 		log.Println(err)
 	}
 
-	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	dc := dcb.Build()
-
 	suite.ctx = context.Background()
 
 	redisContainer, err := NewRedisContainer(suite.ctx)
@@ -65,15 +56,22 @@ func (suite *RedisRepoTestSuite) SetupSuite() {
 	}
 
 	suite.redisContainer = redisContainer
+
 	// overrides the address read from configs
-	ip, err := suite.redisContainer.ContainerIP(suite.ctx)
+	port, err := suite.redisContainer.MappedPort(suite.ctx, "6379/tcp")
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg.Cache.RedisAddress = fmt.Sprintf("%s:%d", ip, TEST_RD_PORT)
+
+	addr, err := suite.redisContainer.Host(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg.Cache.RedisAddress = net.JoinHostPort(addr, port.Port())
 
 	// skips the controller
-	repository, err := redis.New(context.TODO(), dc, cfg)
+	repository, err := redis.New(context.TODO(), cfg.Cache.RedisAddress, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
