@@ -15,39 +15,38 @@ import (
 )
 
 type RedisRepository struct {
-	ctx    context.Context
-	client *redis.Client
+	ctx     context.Context
+	client  *redis.Client
+	address string
+	cfg     *config.Config
 }
 
-func New(ctx context.Context, dc *discovery.Controller, cfg *config.Config) (*RedisRepository, error) {
-	_, span := tracing.Tracer.Start(ctx, "rd/New")
+func New(trace_ctx context.Context, address string, cfg *config.Config) (*RedisRepository, error) {
+	_, span := tracing.Tracer.Start(trace_ctx, "rd/New")
 	defer span.End()
 
 	rc := &RedisRepository{
-		ctx: context.Background(),
+		ctx:     context.Background(),
+		address: address,
+		cfg:     cfg,
 	}
-	err := rc.connect(ctx, dc, cfg)
+	err := rc.connect(trace_ctx)
 	return rc, err
 }
 
-func (rc *RedisRepository) connect(ctx context.Context, dc *discovery.Controller, cfg *config.Config) error {
-    _, span := tracing.Tracer.Start(ctx, "rd/connect")
-    defer span.End()
-
-	address, err := rc.GetConnectionString(dc, cfg)
-	if err != nil {
-		return err
-	}
+func (rc *RedisRepository) connect(ctx context.Context) error {
+	_, span := tracing.Tracer.Start(ctx, "rd/connect")
+	defer span.End()
 
 	rc.client = redis.NewClient(&redis.Options{
-		Addr:         address,
-		Password:     cfg.Cache.RedisPassword,
-		DB:           cfg.Cache.RedisDB,
+		Addr:         rc.address,
+		Password:     rc.cfg.Cache.RedisPassword,
+		DB:           rc.cfg.Cache.RedisDB,
 		ReadTimeout:  2 * time.Second,
 		WriteTimeout: 2 * time.Second,
 	})
 
-	_, err = rc.client.Ping(rc.ctx).Result()
+	_, err := rc.client.Ping(rc.ctx).Result()
 	return err
 }
 

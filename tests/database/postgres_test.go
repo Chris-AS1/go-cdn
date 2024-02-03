@@ -5,9 +5,9 @@ import (
 	"go-cdn/internal/config"
 	"go-cdn/internal/database/repository"
 	"go-cdn/internal/database/repository/postgres"
-	discovery "go-cdn/internal/discovery/controller"
 	"go-cdn/pkg/model"
 	"log"
+	"net"
 	"testing"
 	"time"
 
@@ -20,9 +20,9 @@ import (
 )
 
 const (
+	TEST_DB_DBNAME   = "test-db"
 	TEST_DB_USERNAME = "pguser"
 	TEST_DB_PASSWORD = "pgpassword"
-	TEST_DB_DBNAME   = "test-db"
 )
 
 type PostgresContainer struct {
@@ -63,12 +63,6 @@ func (suite *PostgresRepoTestSuite) SetupSuite() {
 		log.Println(err)
 	}
 
-	dcb, err := discovery.NewControllerBuilder().FromConfigs(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	dc := dcb.Build()
-
 	suite.ctx = context.Background()
 
 	pgContainer, err := CreatePostgresContainer(suite.ctx)
@@ -77,8 +71,19 @@ func (suite *PostgresRepoTestSuite) SetupSuite() {
 	}
 
 	suite.pgContainer = pgContainer
+
 	// overrides the address read from configs
-	cfg.Database.DatabaseAddress, err = suite.pgContainer.ContainerIP(suite.ctx)
+	port, err := suite.pgContainer.MappedPort(suite.ctx, "5432/tcp")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	addr, err := suite.pgContainer.Host(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg.Database.DatabaseAddress = net.JoinHostPort(addr, port.Port())
 	cfg.Database.DatabaseName = TEST_DB_DBNAME
 	cfg.Database.DatabaseUsername = TEST_DB_USERNAME
 	cfg.Database.DatabasePassword = TEST_DB_PASSWORD
@@ -88,7 +93,7 @@ func (suite *PostgresRepoTestSuite) SetupSuite() {
 	}
 
 	// skips the controller
-	repository, err := postgres.New(context.TODO(), dc, cfg)
+	repository, err := postgres.New(context.TODO(), cfg.Database.DatabaseAddress, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

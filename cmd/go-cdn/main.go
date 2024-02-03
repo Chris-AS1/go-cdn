@@ -79,9 +79,13 @@ func main() {
 	}
 
 	// DB Repo
-	pg_repo, err := postgres.New(mctx, dc, cfg)
+	addr, err := dc.DiscoverService(cfg.Database.DatabaseAddress)
 	if err != nil {
-		sugar.Panicw("database repo creation", "err", err)
+		sugar.Panicw("postgres service discovery", "err", err)
+	}
+	pg_repo, err := postgres.New(mctx, addr, cfg)
+	if err != nil {
+		sugar.Panicw("postgres repo creation", "err", err)
 	}
 	db := database.New(pg_repo)
 	defer db.Close()
@@ -89,7 +93,11 @@ func main() {
 	// Cache Repo
 	var cache *database.Controller
 	if cfg.Cache.RedisEnable {
-		rd_repo, err := redis.New(mctx, dc, cfg)
+		addr, err = dc.DiscoverService(cfg.Cache.RedisAddress)
+		if err != nil {
+			sugar.Panicw("redis service discovery", "err", err)
+		}
+		rd_repo, err := redis.New(mctx, addr, cfg)
 		if err != nil {
 			sugar.Panicw("redis repo creation", "err", err)
 		}
